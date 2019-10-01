@@ -38,7 +38,7 @@ Suppose you are conducting analysis in `${BAKEOFF_ROOT}/your/folder`.  I suggest
 
 The advantages of this are:
 
-* we get to keep all scripts / snakefiles in one place (this github repo), so we can see them all.
+* we get to keep all scripts / snakefiles in one place (i.e. in this github repo), so we can see them all.
 * but you also have the code right there in the folder you're analysing (including any code shared between analyses).
 * any changes you make can be tracked using git.
 
