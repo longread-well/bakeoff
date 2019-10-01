@@ -6,7 +6,9 @@ This repository contains code for the long-read bakeoff
 This repository is publicly viewable!  Please include here any code or docs relevant to the project.  But please do not include any non-public project data, or other project-sensitive information.
 
 # Using this code
+The following is my suggestion for a way of working that will a) keep everything in once place but b) allow us to keep scripts next to the analysis where they are needed.
 
+## Root folder:
 I suggest using an environment variable to specify the root of the bakeoff project folder in scripts:
 ```
 BAKEOFF_ROOT=<path to root folder of bakeoff dir>
@@ -25,7 +27,7 @@ import os
 BAKEOFF_ROOT = os.environ[ 'BAKEOFF_ROOT' ]
 ```
 
-# A possible way of working
+## Handling scripts:
 
 Suppose you are conducting analysis in `${BAKEOFF_ROOT}/your/folder`.  I suggest the following workflow (given as an example for snakemake):
 
