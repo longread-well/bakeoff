@@ -42,3 +42,21 @@ The advantages of this are:
 * but you also have the code right there in the folder you're analysing (including any code shared between analyses).
 * any changes you make can be tracked using git.
 
+## Analysis structure
+
+I'm going to use the following type of structure in which pipeline code (snakemake files) and worker scripts are seperated under each analysis:
+
+```
+analysis/
+  [analysis path]/
+    README.md
+    pipelines/
+      [analysis 1 name].snakemake
+      [analysis 2 name].snakemake
+      ...
+    scripts/
+      script1.R
+      do_something.sh
+```
+
+The analysis path is flexible, e.g. it could be a single level (e.g. `kmer`) or could be split by platform if you have seperate analyses for each platform.
