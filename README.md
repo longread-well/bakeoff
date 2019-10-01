@@ -33,6 +33,8 @@ Suppose you are conducting analysis in `${BAKEOFF_ROOT}/your/folder`.  I suggest
 * symlink the relevant snakefile: `ln -s scripts/[...]/conduct_analysis.snakemake ./Snakefile.symlink`
 * Now run your analysis as `snakemake -s Snakefile.symlink`
 
+(If you're not using snakemake, an analogous process no doubt applies using e.g. a shell or python script.)
+
 The advantages of this are:
 
 * we get to keep all scripts / snakefiles in one place (this github repo), so we can see them all.
