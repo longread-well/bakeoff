@@ -7,9 +7,21 @@ This repository is publicly viewable!  Please include here any code or docs rele
 
 # Using this code
 
-Please set the following environment variable:
+I suggest we use an environment variable in scripts to specify the root of the bakeoff project folder:
 ```
 BAKEOFF_ROOT=<path to root folder of bakeoff dir>
 ```
+This can be set (for example) in `~/.bashrc` to make it always available.
 
-Code in this repository may refer to paths within the `BAKEOFF_ROOT` directory.
+This means a) we don't need to store absolute paths in scripts b) it's useful to run the same scripts on other folders, e.g. test folders, and c) it's useful to port code to other machines where the mount point differs. 
+
+To use an environment variable in R:
+```R
+BAKEOFF_ROOT = Sys.getenv( "BAKEOFF_ROOT" )
+```
+or in python:
+```python
+import os
+BAKEOFF_ROOT = os.environ[ 'BAKEOFF_ROOT' ]
+```
+
