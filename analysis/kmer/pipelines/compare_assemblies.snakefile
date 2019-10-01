@@ -1,4 +1,6 @@
-import csv
+import csv, os
+
+ROOT = os.environ[ 'BAKEOFF_ROOT' ]
 
 def loadRegions( filename = '../resources/regions.tsv' ):
 	regions = []
@@ -11,7 +13,7 @@ def loadRegions( filename = '../resources/regions.tsv' ):
 
 regions = loadRegions()
 
-basedir = "/well/longread/projects"
+basedir = "%s/projects" % ROOT
 builds = {
 	"GRCh37": '%s/reference/GRCh37/hs37d5/hs37d5.fa' % basedir,
 	"GRCh38": '%s/reference/GRCh38/10X/refdata-GRCh38-2.1.0/fasta/genome.fa' % basedir
@@ -125,7 +127,7 @@ rule selfmapPlot:
 rule vsNanoporeSelfmapPlot:
 	input:
 		build = "regions/sequence/{acronym}.{build}.fa",
-		assembled = "/well/longread/projects/nanopore/{acronym}_assembly_test/{method}/consensus.fasta"
+		assembled = "%s/projects/nanopore/{acronym}_assembly_test/{method}/consensus.fasta" % BAKEOFF_ROOT
 	output:
 		dotplot = "regions/images/{acronym}.{build}-{method}.k=100.dotplot.pdf"
 	params:
@@ -144,7 +146,7 @@ rule vsNanoporeSelfmapPlot:
 rule vsNanoporeNucmerCompare:
 	input:
 		reference = "regions/sequence/{acronym}.{build}.fa",
-		assembled = "/well/longread/projects/nanopore/{acronym}_assembly_test/{method}/consensus.fasta"
+		assembled = "%s/projects/nanopore/{acronym}_assembly_test/{method}/consensus.fasta" % BAKEOFF_ROOT
 	output:
 		delta = "regions/comparison/{acronym}.{build}-{method}.delta",
 		coords = "regions/comparison/{acronym}.{build}-{method}.coords",

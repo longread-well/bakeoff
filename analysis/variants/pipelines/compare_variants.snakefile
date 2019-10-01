@@ -7,7 +7,7 @@ def getPath( relativePath ):
 vcfs = {
 	#'10X': getPath( 'projects/wgs_10x/SVs/JK_HV31_3/outs/phased_variants.vcf.gz' ),
 	'10X': getPath( 'users/gav/tmp/10X_phased_variants.vcf.gz' ),
-	#'nanopore': '/well/longread/projects/nanopore//snv-calling/longshot-chr22-build38.vcf'
+	#'nanopore': '%s/projects/nanopore//snv-calling/longshot-chr22-build38.vcf' % ROOT
 	'nanopore': getPath( 'users/gav/tmp/longshot-chr22-build38.vcf.gz' )
 }
 
@@ -51,7 +51,7 @@ rule getSNPs:
 rule extractGnomAD:
 	input:
 		vcf = gnomAD,
-		ref = "/well/longread/projects/reference/GRCh38/10X/refdata-GRCh38-2.1.0/fasta/genome.fa"
+		ref = "%s/projects/reference/GRCh38/10X/refdata-GRCh38-2.1.0/fasta/genome.fa" % ROOT
 	output:
 		vcf = 'vcf/gnomAD.normalised.vcf.gz',
 		tbi = 'vcf/gnomAD.normalised.vcf.gz.tbi',
