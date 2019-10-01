@@ -25,3 +25,17 @@ import os
 BAKEOFF_ROOT = os.environ[ 'BAKEOFF_ROOT' ]
 ```
 
+# A possible way of working
+
+Suppose you are conducting analysis in `${BAKEOFF_ROOT}/your/folder`.  I suggest the following workflow (given as an example for snakemake):
+
+* Clone this repo as the scripts/ folder.
+* symlink the relevant snakefile: `ln -s scripts/[...]/conduct_analysis.snakemake ./Snakefile.symlink`
+* Now run your analysis as `snakemake -s Snakefile.symlink`
+
+The advantages of this are:
+
+* we get to keep all scripts / snakefiles in one place (this github repo), so we can see them all.
+* but you also have the code right there in the folder you're analysing (including any code shared between analyses).
+* any changes you make can be tracked using git.
+
