@@ -1,0 +1,65 @@
+import csv, os
+
+ROOT = "/well/longread/users/akl399/bakeoff"
+
+# Output: ROOT/analysis/de_novo_assembly/data/{acronym}.{build}-{method}/assembly.fa
+# Input: (1) mapped reads; (2) region defination
+
+tools = {
+	"samtools": "/apps/well/samtools/1.4.1/bin/samtools",
+	"flye": "/well/ont/apps/Flye-2.5/bin/flye",
+	"racon": "/well/ont/apps/racon/build/bin/racon",
+	"minimap2": "/well/ont/apps/minimap2-v2.14/minimap2/minimap2",
+	"medaka": "/well/ont/apps/medaka/venv/bin/activate"
+}
+
+def load_regions( filename = ROOT + '/resources/regions.tsv' ):
+	"""
+	Returns a list of regions, each as a OrderedDict.
+	Example: 
+		OrderedDict([('name', 'T Cell Receptor Alpha'), 
+			('acronym', 'TRA'), ('build', 'GRCh38'), 
+			('chromosome', 'chr14'), ('start', '21170441'), 
+			('end', '22134544'), 
+			('start_sequence', 'CCTACCCCACACACTTATCACCCAGCAGGGAACCCTCAGGTTGGGCCCACAGCCCCCATT'), 
+			('end_sequence', 'CCCTGGAAACCATTATTTTATTCTCTGCTTCTATGAATTTGACTATTTTAGATACCTCAAATAAGTGTAATCATGCATTATTTG')])
+	"""
+	regions = []
+	with open( filename, newline = '' ) as file:
+		regionReader = csv.DictReader( file, delimiter = '\t' )
+		for region in regionReader:
+			regions.append( dict( region ))
+	return regions
+
+regions = load_regions()
+
+def get_region_definition(acronym, build, regions):
+	result = [ region for region in regions if region['build'] == "GRCh" + build and region['acronym'] == acronym ]
+	if len( result ) != 1:
+		raise Exception( "No region with  acronym %s and build %s can be found." % ( acronym, build ) )
+	return result[0]
+
+rule Extract_target_region:
+	input: 
+		bam = "/well/longread/projects/nanopore/data/minimap2_all-build{build}.bam",
+		region_definition = ROOT + '/resources/regions.tsv'
+
+	output:
+		sequence = "data/Build{build}/{acronym}/Extract_target_region/sequence.fastq"
+	
+	params:
+		chromosome = lambda wildcards: get_region_definition(wildcards.acronym, wildcards.build, regions)["chromosome"],
+		start = lambda wildcards: get_region_definition(wildcards.acronym, wildcards.build, regions)["start"],
+		end = lambda wildcards: get_region_definition(wildcards.acronym, wildcards.build, regions)["end"],
+		samtools = tools['samtools'],
+
+	shell:
+		"{params.samtools} view -b {input.bam} {params.chromosome}:{params.start}-{params.end} | {params.samtools} fastq - > {output.sequence}"
+
+rule Flye_racon_medaka:
+	input: 
+		sequence = "data/Build{build}/{acronym}/Extract_target_region/sequence.fastq"
+
+	output: 
+		pass
+
