@@ -62,7 +62,7 @@ rule Flye:
 
 	output: 
 		consensus = ROOT + "/analysis/de_novo_assembly/data/Build{build}/{acronym}/{method}/Flye/assembly.fasta",
-		symlink = ROOT + "/analysis/de_novo_assembly/data/Build{build}/{acronym}/{method}/Racon_input.symlink"
+		symlink = ROOT + "/analysis/de_novo_assembly/data/Build{build}/{acronym}/{method}/Racon_input.symlink.fasta"
 
 	params:
 		flye = tools['flye'],
@@ -76,16 +76,16 @@ rule Flye:
 
 rule Racon:
 	input: 
-		scaffold = ROOT + "/analysis/de_novo_assembly/data/Build{build}/{acronym}/{method}/Racon_input.symlink",
+		scaffold = ROOT + "/analysis/de_novo_assembly/data/Build{build}/{acronym}/{method}/Racon_input.symlink.fasta",
 		reads = ROOT + "/analysis/de_novo_assembly/data/Build{build}/{acronym}/Extract_target_region/reads.fastq"
 
 	output:
-		scaffold = "/analysis/de_novo_assembly/data/Build{build}/{acronym}/{method}/3xRacon/racon-3.ctg.fa.gz",
-		symlink = ROOT + "/analysis/de_novo_assembly/data/Build{build}/{acronym}/{method}/Medaka_input.symlink"
+		scaffold = ROOT + "/analysis/de_novo_assembly/data/Build{build}/{acronym}/{method}/3xRacon/racon-3.ctg.fa.gz",
+		symlink = ROOT + "/analysis/de_novo_assembly/data/Build{build}/{acronym}/{method}/Medaka_input.symlink.ctg.fa.gz"
 
 	params:
 		racon = tools['racon'],
-		minimap2 = tools['minimap2']
+		minimap2 = tools['minimap2'],
 		output_folder = ROOT + "/analysis/de_novo_assembly/data/Build{build}/{acronym}/{method}/3xRacon/"
 
 	shell:
@@ -95,16 +95,18 @@ rule Racon:
 		for ROUND in $(seq -w 1 3); do
 			echo "Running round ${{ROUND}} consensus..."
     		READS2TIGS={params.output_folder}racon-${{ROUND}}.paf.gz
-    		NEWSCAF=.{params.output_folder}racon-${{ROUND}}.ctg.fa.gz
+    		NEWSCAF={params.output_folder}racon-${{ROUND}}.ctg.fa.gz
 
     		{params.minimap2} -t 4 ${{SCAFFOLD}} ${{READS}} | gzip -1 > ${{READS2TIGS}}
     		{params.racon} -m 8 -x -6 -g -8 -t 4 -q -1 -w 500 ${{READS}} ${{READS2TIGS}} ${{SCAFFOLD}} | gzip -1 > ${{NEWSCAF}}
 
     		rm ${{READS2TIGS}} &
     		SCAFFOLD=${{NEWSCAF}}
+    	done
 
     	ln -s {output.scaffold} {output.symlink}
 		"""
+
 
 
 
