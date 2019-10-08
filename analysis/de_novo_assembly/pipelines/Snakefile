@@ -113,12 +113,9 @@ rule Racon:
 			echo "Running round ${{ROUND}} consensus..."
     		READS2TIGS={params.output_folder}racon-${{ROUND}}.paf.gz
     		NEWSCAF={params.output_folder}racon-${{ROUND}}.ctg.fa.gz
-
-    		{params.minimap2} -t 4 ${{SCAFFOLD}} ${{READS}} | gzip -1 > ${{READS2TIGS}}
-    		{params.racon} -m 8 -x -6 -g -8 -t 4 -q -1 -w 500 ${{READS}} ${{READS2TIGS}} ${{SCAFFOLD}} | gzip -1 > ${{NEWSCAF}}
-
-    		rm ${{READS2TIGS}} &
-    		SCAFFOLD=${{NEWSCAF}}
+    		{params.minimap2} -t 4 $SCAFFOLD $READS | gzip -1 > $READS2TIGS
+    		{params.racon} -m 8 -x -6 -g -8 -t 4 -q -1 -w 500 $READS $READS2TIGS $SCAFFOLD | gzip -1 > $NEWSCAF
+    		rm $READS2TIGS & SCAFFOLD=$NEWSCAF
     	done
 
     	ln -s {output.scaffold} {output.symlink}
