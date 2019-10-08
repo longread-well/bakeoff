@@ -2,6 +2,9 @@ import csv, os
 
 ROOT = "/well/longread/users/akl399/bakeoff"
 
+# Output: ROOT/analysis/de_novo_assembly/data/{acronym}.{build}-{method}/assembly.fa
+# Input: (1) mapped reads; (2) region defination
+
 tools = {
 	"samtools": "/apps/well/samtools/1.4.1/bin/samtools",
 	"flye": "/well/ont/apps/Flye-2.5/bin/flye",
@@ -81,7 +84,7 @@ rule Flye:
 
 	params:
 		flye = tools['flye'],
-		output_folder = lambda wildcards: get_output_path(wildcards.build, wildcards.acronym, wildcards.method) + "Flye/"
+		output_folder = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/flye-racon-medaka/Flye/"
 
 	shell: 
 		"""
@@ -102,7 +105,7 @@ rule Racon:
 	params:
 		racon = tools['racon'],
 		minimap2 = tools['minimap2'],
-		output_folder = lambda wildcards: get_output_path(wildcards.build, wildcards.acronym, wildcards.method) + "3xRacon/"
+		output_folder = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/{method}/3xRacon/"
 
 	shell:
 		"""
@@ -132,7 +135,7 @@ rule Medaka:
 
 	params:
 		medaka = tools['medaka'],
-		output_folder = lambda wildcards: get_output_path(wildcards.build, wildcards.acronym, wildcards.method) + "Medaka/"
+		output_folder = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/{method}/Medaka/"
 
 	shell:
 		"""
@@ -169,7 +172,6 @@ rule Canu:
 rule Wtdbg2:
 	input:
 		reads = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/Extract_target_region/reads.fastq"
-	
 	output:
 		consensus = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/wtdbg2-racon-medaka/Wtdbg2/wtdbg2.ctg.fa",
 		symlink = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/wtdbg2-racon-medaka/Racon_input.symlink.fasta"
@@ -177,7 +179,6 @@ rule Wtdbg2:
 	params:
 		wtdbg2 = tools['wtdbg2'],
 		output_prefix = lambda wildcards: get_output_path(wildcards.build, wildcards.acronym, "wtdbg2-racon-medaka") + 'Wtdbg2/wtdbg2'
-	
 	shell:
 		"""
 		{params.wtdbg2}//wtdbg2 -x ont -g 1m -t 4 -i {input.reads} -fo {params.output_prefix}
