@@ -10,7 +10,9 @@ tools = {
 	"flye": "/well/ont/apps/Flye-2.5/bin/flye",
 	"racon": "/well/ont/apps/racon/build/bin/racon",
 	"minimap2": "/well/ont/apps/minimap2-v2.14/minimap2/minimap2",
-	"medaka": "/well/ont/apps/medaka/venv/bin/activate"
+	"medaka": "/well/ont/apps/medaka/venv/bin/activate",
+	"canu": "/well/ont/apps/canu-1.8/Linux-amd64/bin/canu",
+	"wtdbg2": "/well/ont/apps/wtdbg2"
 }
 
 def load_regions( filename = ROOT + '/resources/regions.tsv' ):
@@ -48,7 +50,12 @@ def get_output_file(build, acronyms, method):
 
 
 wildcard_constraints:
-	build='GRCh3[7|8]'
+	build='GRCh3[7|8]',
+	acronym=r'\w+'
+
+
+
+
 
 rule Extract_target_region:
 	input: 
@@ -72,16 +79,16 @@ rule Flye:
 		reads = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/Extract_target_region/reads.fastq"
 
 	output: 
-		consensus = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/{method}/Flye/assembly.fasta",
-		symlink = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/{method}/Racon_input.symlink.fasta"
+		consensus = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/flye-racon-medaka/Flye/assembly.fasta",
+		symlink = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/flye-racon-medaka/Racon_input.symlink.fasta"
 
 	params:
 		flye = tools['flye'],
-		output_folder = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/{method}/Flye/"
+		output_folder = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/flye-racon-medaka/Flye/"
 
 	shell: 
 		"""
-		echo "STEP: Flye; Build: {wildcards.build}; Acronym: {wildcards.acronym}; Method: {wildcards.method}"
+		echo "STEP: Flye; Build: {wildcards.build}; Acronym: {wildcards.acronym}; Method: flye-racon-medaka"
 		{params.flye} --nano-raw {input.reads} -g 1m -o {params.output_folder} -t 4 --asm-coverage 40
 		ln -s {output.consensus} {output.symlink}
 		"""
@@ -143,11 +150,52 @@ rule Medaka:
 		ln -s {output.assembly} {output.symlink}
 		"""
 
+rule Canu:
+	input: 
+		reads = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/Extract_target_region/reads.fastq"
+	
+	output:
+		consensus = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/canu-racon-medaka/Canu/canu.contigs.fasta",
+		symlink = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/canu-racon-medaka/Racon_input.symlink.fasta"
+
+	params: 
+		canu = tools['canu'],	
+		output_folder = lambda wildcards: get_output_path(wildcards.build, wildcards.acronym, "canu-racon-medaka") + 'Canu/'
+	
+	shell:
+		"""
+		echo "STEP: Canu; Build: {wildcards.build}; Acronym: {wildcards.acronym}; Method: canu-racon-medaka"
+
+		module load gcc/5.4.0
+		module load java/1.8.0_latest
+		{params.canu} -d {params.output_folder} -p canu genomeSize=1m 'useGrid=false' -nanopore-raw {input.reads}
+		ln -s {output.consensus} {output.symlink}
+		"""
+
+rule Wtdbg2:
+	input:
+		reads = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/Extract_target_region/reads.fastq"
+	output:
+		consensus = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/wtdbg2-racon-medaka/Wtdbg2/wtdbg2.ctg.fa",
+		symlink = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/wtdbg2-racon-medaka/Racon_input.symlink.fasta"
+
+	params:
+		wtdbg2 = tools['wtdbg2'],
+		output_prefix = lambda wildcards: get_output_path(wildcards.build, wildcards.acronym, "wtdbg2-racon-medaka") + 'Wtdbg2/wtdbg2'
+	shell:
+		"""
+		{params.wtdbg2}//wtdbg2 -x ont -g 1m -t 4 -i {input.reads} -fo {params.output_prefix}
+		{params.wtdbg2}/wtpoa-cns -t 4 -i {params.output_prefix}.ctg.lay.gz -fo {params.output_prefix}.ctg.fa
+
+		ln -s {output.consensus} {output.symlink}
+		"""
+
+
 rule All:
 	input:
-		output_file = [ get_output_file(build, acronym, method) for build in ["GRCh37", "GRCh38"] for acronym in acronyms for method in ['flye-racon-medaka']]
-
-
-
+		output_file = [ get_output_file(build, acronym, method) 
+			for build in ["GRCh37", "GRCh38"] 
+			for acronym in acronyms 
+			for method in ['flye-racon-medaka', 'canu-racon-medaka', 'wtdbg2-racon-medaka']]
 
 
