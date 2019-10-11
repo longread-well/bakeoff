@@ -1,6 +1,6 @@
 import csv, os
 
-ROOT = "/well/longread/users/akl399/bakeoff"
+ROOT = os.environ[ 'BAKEOFF_ROOT' ]
 
 # Output: ROOT/analysis/de_novo_assembly/data/{acronym}.{build}-{method}/assembly.fa
 # Input: (1) mapped reads; (2) region defination
@@ -116,9 +116,9 @@ rule Racon:
 			echo "Running round ${{ROUND}} consensus..."
     		READS2TIGS={params.output_folder}racon-${{ROUND}}.paf.gz
     		NEWSCAF={params.output_folder}racon-${{ROUND}}.ctg.fa.gz
-    		{params.minimap2} -t 4 $SCAFFOLD $READS | gzip -1 > $READS2TIGS
-    		{params.racon} -m 8 -x -6 -g -8 -t 4 -q -1 -w 500 $READS $READS2TIGS $SCAFFOLD | gzip -1 > $NEWSCAF
-    		rm $READS2TIGS & SCAFFOLD=$NEWSCAF
+    		{params.minimap2} -t 4 ${{SCAFFOLD}} ${{READS}} | gzip -1 > ${{READS2TIGS}}
+    		{params.racon} -m 8 -x -6 -g -8 -t 4 -q -1 -w 500 ${{READS}} ${{READS2TIGS}} ${{SCAFFOLD}} | gzip -1 > ${{NEWSCAF}}
+    		rm ${{READS2TIGS}} & SCAFFOLD=${{NEWSCAF}}
     	done
 
     	ln -s {output.scaffold} {output.symlink}
@@ -181,6 +181,8 @@ rule Wtdbg2:
 		output_prefix = lambda wildcards: get_output_path(wildcards.build, wildcards.acronym, "wtdbg2-racon-medaka") + 'Wtdbg2/wtdbg2'
 	shell:
 		"""
+		echo "STEP: Wtdbg2; Build: {wildcards.build}; Acronym: {wildcards.acronym}; Method: wtdbg2-racon-medaka"
+
 		{params.wtdbg2}//wtdbg2 -x ont -g 1m -t 4 -i {input.reads} -fo {params.output_prefix}
 		{params.wtdbg2}/wtpoa-cns -t 4 -i {params.output_prefix}.ctg.lay.gz -fo {params.output_prefix}.ctg.fa
 
@@ -192,7 +194,8 @@ rule All:
 	input:
 		output_file = [ get_output_file(build, acronym, method) 
 			for build in ["GRCh37", "GRCh38"] 
-			for acronym in acronyms 
-			for method in ['flye-racon-medaka', 'canu-racon-medaka', 'wtdbg2-racon-medaka']]
+			for acronym in acronyms
+			for method in ['flye-racon-medaka', 'wtdbg2-racon-medaka', 'canu-racon-medaka']]
+	threads: 8
 
 
