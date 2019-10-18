@@ -3,13 +3,14 @@ import os
 ROOT = os.environ[ 'BAKEOFF_ROOT' ]
 include: ROOT + "/analysis/shared/scripts/initialize.py"
 
-output_path = ROOT + "/analysis/compare_assemblies/ref_selfmap/data/{build}/{acronym}/"
+output_path = ROOT + "/analysis/compare_assemblies/consensus_vs_ref_selfmap/data/{build}/{acronym}/{method}/"
 
 rule Selfmap:
     input:
-        fasta = ROOT + "/analysis/shared/data/regions/sequence/{build}/{acronym}.fasta"
+        ref = ROOT + "/analysis/shared/data/regions/sequence/{build}/{acronym}.fasta",
+        consensus = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/{method}/Output.symlink.fasta"
     output:
-        k_100_pdf = output_path + "selfmap_k_100.pdf"
+        k_100_pdf = output_path + "selfmap_k_100.pdf",
     params:
         selfmap_plot = tools['selfmap_plot'],
         Rscript = tools["Rscript"],
@@ -20,8 +21,8 @@ rule Selfmap:
         # Include selfmap path in $PATH
         export PATH=$PATH:/well/longread/users/akl399/bin/
 		{params.Rscript} --vanilla {params.selfmap_plot} \
-            --s1 'ref1={input.fasta}' \
-            --s2 'ref2={input.fasta}' \
+            --s1 '{wildcards.build}-{wildcards.acronym}={input.ref}' \
+            --s2 '{wildcards.method}={input.consensus}' \
             --k 100 \
             --chromosome1 {params.chromosome} \
             --chromosome2 {params.chromosome} \
@@ -32,7 +33,8 @@ rule Selfmap:
 
 rule All:
     input:
-        [output_path.format(build = build, acronym = acronym) + "selfmap_k_100.pdf"
-            for build in builds
-            for acronym in ['TRA', "HLA"]
+        [output_path.format(build = build, acronym = acronym, method = method) + "selfmap_k_100.pdf"
+            for build in ["GRCh37"]
+            for acronym in ['TRA']
+            for method in ["flye-racon-medaka"]
             ]

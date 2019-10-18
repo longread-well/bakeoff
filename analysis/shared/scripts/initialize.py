@@ -30,5 +30,6 @@ tools = dict(
 	samtools = "/apps/well/samtools/1.4.1/bin/samtools",
 	selfmap = "/well/longread/users/akl399/bin/selfmap_v2.1-dev",
 	selfmap_plot = ROOT + "/analysis/shared/scripts/selfmap_plot.R",
-	Rscript = '/apps/well/R/3.4.3-openblas-0.2.18-omp-gcc5.4.0/bin/Rscript'
+	Rscript = '/apps/well/R/3.4.3-openblas-0.2.18-omp-gcc5.4.0/bin/Rscript',
+	pdftoppm = "/users/todd/akl399/bin/miniconda/bin/pdftoppm"
 )
