@@ -12,7 +12,7 @@ def get_input_file(build, acronym, method):
 	if method == "flye-racon-medaka":
 		input_file = "Flye/assembly_graph.gfa"
 	elif method == "canu-racon-medaka":
-		input_file = "/Canu/canu.contigs.gfa"
+		input_file = "Canu/canu.contigs.gfa"
 	else:
 		raise Exception("Only methods flye-racon-medaka and canu-racon-medaka are supported.")
 	return prefix + input_file
@@ -36,7 +36,7 @@ rule Bandage:
 rule All:
 	input:
 		output_file = [ get_output_file(build, acronym, method) 
-			for build in ["GRCh37"] 
+			for build in ["GRCh37", "GRCh38"] 
 			for acronym in acronyms
 			for method in ['flye-racon-medaka', 'canu-racon-medaka']]
 

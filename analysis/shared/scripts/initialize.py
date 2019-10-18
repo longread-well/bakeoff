@@ -22,4 +22,11 @@ def load_regions( filename = ROOT + '/resources/regions.tsv' ):
 
 regions = load_regions()
 acronyms = [region['acronym'] for region in regions]
+methods = ['flye-racon-medaka', 'canu-racon-medaka', 'wtdbg2-racon-medaka']
+
+tools = {
+	"minimap2": "/well/ont/apps/minimap2-v2.14/minimap2/minimap2",
+	"samtools": "/apps/well/samtools/1.4.1/bin/samtools",
+	
+}
 
