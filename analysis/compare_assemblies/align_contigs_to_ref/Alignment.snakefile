@@ -10,11 +10,23 @@ REF = dict(
 	GRCh38 = ROOT + "/analysis/shared/data/reference/GRCh38_REF.mmi",
 	)
 
+def get_input_fasta(method):
+	prefix = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/"
+
+	if method in ("flye-racon-medaka", "canu-racon-medaka", "wtdbg2-racon-medaka"):
+		filename = method + "/Output.symlink.fasta"
+	elif method in ("flye-racon", "canu-racon", "wtdbg2-racon"):
+		filename = method + "-medaka" + "/3xRacon/racon-3.ctg.fa.gz"
+	elif method in ("flye", "canu", "wtdbg2"):
+		filename = method + "-racon-medaka" + "/Racon_input.symlink.fasta"
+
+	return prefix + filename
+
 output_file = ROOT + "/analysis/compare_assemblies/align_contigs_to_ref/data/{build}/{acronym}/{method}.bam"
 
 rule Align_contigs_to_ref:
 	input:
-		fasta = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/{method}/Output.symlink.fasta",
+		fasta = lambda wildcards: get_input_fasta(wildcards.method),
 		ref = lambda wildcards: REF[wildcards.build]
 	output:
 		bam = output_file
@@ -32,5 +44,5 @@ rule All:
 		[ output_file.format(build=build, acronym=acronym, method=method)
 			for build in ["GRCh37", "GRCh38"]
 			for acronym in acronyms
-			for method in methods
+			for method in methods + ["flye", "canu", "wtdbg2" ]
 			]
