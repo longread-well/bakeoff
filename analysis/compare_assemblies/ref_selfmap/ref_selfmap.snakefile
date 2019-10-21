@@ -34,5 +34,5 @@ rule All:
     input:
         [output_path.format(build = build, acronym = acronym) + "selfmap_k_100.pdf"
             for build in builds
-            for acronym in ['TRA', "HLA"]
+            for acronym in acronyms
             ]

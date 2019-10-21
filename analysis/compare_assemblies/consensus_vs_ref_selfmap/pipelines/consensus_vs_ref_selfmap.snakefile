@@ -34,7 +34,7 @@ rule Selfmap:
 rule All:
     input:
         [output_path.format(build = build, acronym = acronym, method = method) + "selfmap_k_100.pdf"
-            for build in ["GRCh37"]
-            for acronym in ['TRA']
-            for method in ["flye-racon-medaka"]
+            for build in builds
+            for acronym in acronyms
+            for method in methods
             ]
