@@ -22,7 +22,7 @@
 #   mpi
 #   node_mpi
 #   ramdisk
-#$ -pe shmem 10
+#$ -pe shmem 6
 
 # Some useful data about the job to help with debugging
 echo "------------------------------------------------"
@@ -37,7 +37,7 @@ echo "------------------------------------------------"
 # Begin writing your script here
 
 FASTQ=/well/longread/projects/nanopore/data/WTON000393/fastq-trimmed-all.fastq.gz
-OUTPUT_FOLDER=Flye
+OUTPUT_FOLDER=data/Flye
 /well/ont/apps/Flye-2.5/bin/flye --nano-raw $FASTQ -g 3.2g -o $OUTPUT_FOLDER -t 4 --asm-coverage 40
 echo "Assembly complete"
 

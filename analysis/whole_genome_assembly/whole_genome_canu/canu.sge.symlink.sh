@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Specify a job name
-#$ -N Whole_gemome_flye
+#$ -N Whole_gemome_canu
 
 # Project name and target queue
 #$ -P todd.prjc
@@ -37,8 +37,12 @@ echo "------------------------------------------------"
 # Begin writing your script here
 
 FASTQ=/well/longread/projects/nanopore/data/WTON000393/fastq-trimmed-all.fastq.gz
-OUTPUT_FOLDER=data/Flye
-/well/ont/apps/Flye-2.5/bin/flye --nano-raw $FASTQ -g 3.2g -o $OUTPUT_FOLDER -t 4 --asm-coverage 40
+OUTPUT_FOLDER=data/Canu
+
+module load gcc/5.4.0
+module load java/1.8.0_latest
+
+/well/ont/apps/canu-1.8/Linux-amd64/bin/canu -d $OUTPUT_FOLDER -p canu genomeSize=3.2g 'useGrid=false' -nanopore-raw $FASTQ
 echo "Assembly complete"
 
 # End of job script
