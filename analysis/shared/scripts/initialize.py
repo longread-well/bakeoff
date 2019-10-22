@@ -34,3 +34,10 @@ tools = dict(
 	Rscript = '/apps/well/R/3.4.3-openblas-0.2.18-omp-gcc5.4.0/bin/Rscript',
 	pdftoppm = "/users/todd/akl399/bin/miniconda/bin/pdftoppm"
 )
+
+REF = dict(
+	# Generated with: /well/ont/apps/minimap2-v2.14/minimap2/minimap2 -d GRCh37_REF.mmi /well/longread/projects/reference/GRCh37/10X/refdata-b37-2.1.0/fasta/genome.fa
+	GRCh37 = ROOT + "/analysis/shared/data/reference/GRCh37_REF.mmi",
+	# Symlink to mmi file enerated by Hannah Roberts
+	GRCh38 = ROOT + "/analysis/shared/data/reference/GRCh38_REF.mmi",
+	)
