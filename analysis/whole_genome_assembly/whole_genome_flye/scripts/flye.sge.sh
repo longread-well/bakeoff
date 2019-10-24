@@ -22,7 +22,7 @@
 #   mpi
 #   node_mpi
 #   ramdisk
-#$ -pe shmem 6
+#$ -pe shmem 12
 
 # Some useful data about the job to help with debugging
 echo "------------------------------------------------"
