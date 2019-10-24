@@ -27,6 +27,11 @@ methods = ['flye-racon-medaka', 'canu-racon-medaka', 'wtdbg2-racon-medaka']
 builds = ["GRCh37", "GRCh38"]
 
 tools = dict(
+	flye = "/well/ont/apps/Flye-2.5/bin/flye",
+	racon = "/well/ont/apps/racon/build/bin/racon",
+	medaka = "/well/ont/apps/medaka/venv/bin/activate",
+	canu = "/well/ont/apps/canu-1.8/Linux-amd64/bin/canu",
+	wtdbg2 = "/well/ont/apps/wtdbg2",
 	minimap2 = "/well/ont/apps/minimap2-v2.14/minimap2/minimap2",
 	samtools = "/apps/well/samtools/1.4.1/bin/samtools",
 	selfmap = "/well/longread/users/akl399/bin/selfmap_v2.1-dev",
@@ -41,3 +46,5 @@ REF = dict(
 	# Symlink to mmi file enerated by Hannah Roberts
 	GRCh38 = ROOT + "/analysis/shared/data/reference/GRCh38_REF.mmi",
 	)
+
+TECHNOLOGIES = ['ONT', 'PB-CCS', 'PB-CLR']

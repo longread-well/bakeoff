@@ -1,40 +1,7 @@
 import csv, os
 
 ROOT = os.environ[ 'BAKEOFF_ROOT' ]
-
-# Output: ROOT/analysis/de_novo_assembly/data/{acronym}.{build}-{method}/assembly.fa
-# Input: (1) mapped reads; (2) region defination
-
-tools = {
-	"samtools": "/apps/well/samtools/1.4.1/bin/samtools",
-	"flye": "/well/ont/apps/Flye-2.5/bin/flye",
-	"racon": "/well/ont/apps/racon/build/bin/racon",
-	"minimap2": "/well/ont/apps/minimap2-v2.14/minimap2/minimap2",
-	"medaka": "/well/ont/apps/medaka/venv/bin/activate",
-	"canu": "/well/ont/apps/canu-1.8/Linux-amd64/bin/canu",
-	"wtdbg2": "/well/ont/apps/wtdbg2"
-}
-
-def load_regions( filename = ROOT + '/resources/regions.tsv' ):
-	"""
-	Returns a list of regions, each as a OrderedDict.
-	Example: 
-		OrderedDict([('name', 'T Cell Receptor Alpha'), 
-			('acronym', 'TRA'), ('build', 'GRCh38'), 
-			('chromosome', 'chr14'), ('start', '21170441'), 
-			('end', '22134544'), 
-			('start_sequence', 'CCTACCCCACACACTTATCACCCAGCAGGGAACCCTCAGGTTGGGCCCACAGCCCCCATT'), 
-			('end_sequence', 'CCCTGGAAACCATTATTTTATTCTCTGCTTCTATGAATTTGACTATTTTAGATACCTCAAATAAGTGTAATCATGCATTATTTG')])
-	"""
-	regions = []
-	with open( filename, newline = '' ) as file:
-		regionReader = csv.DictReader( file, delimiter = '\t' )
-		for region in regionReader:
-			regions.append( dict( region ))
-	return regions
-
-regions = load_regions()
-acronyms = [region['acronym'] for region in regions]
+include: ROOT + "/analysis/shared/scripts/initialize.py"
 
 def get_region_definition(acronym, build, regions):
 	result = [ region for region in regions if region['build'] == build and region['acronym'] == acronym ]
@@ -54,17 +21,14 @@ wildcard_constraints:
 	acronym=r'\w+'
 
 
-
-
-
 rule Extract_target_region:
-	input: 
+	input:
 		bam = lambda wildcards: "/well/longread/projects/nanopore/data/minimap2_all-build{build_number}.bam".format(build_number = wildcards.build[4:]),
 		region_definition = ROOT + '/resources/regions.tsv'
 
 	output:
 		reads = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/Extract_target_region/reads.fastq"
-	
+
 	params:
 		chromosome = lambda wildcards: get_region_definition(wildcards.acronym, wildcards.build, regions)["chromosome"],
 		start = lambda wildcards: get_region_definition(wildcards.acronym, wildcards.build, regions)["start"],
@@ -75,10 +39,10 @@ rule Extract_target_region:
 		"{params.samtools} view -b {input.bam} {params.chromosome}:{params.start}-{params.end} | {params.samtools} fastq - > {output.reads}"
 
 rule Flye:
-	input: 
+	input:
 		reads = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/Extract_target_region/reads.fastq"
 
-	output: 
+	output:
 		consensus = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/flye-racon-medaka/Flye/assembly.fasta",
 		symlink = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/flye-racon-medaka/Racon_input.symlink.fasta"
 
@@ -86,7 +50,7 @@ rule Flye:
 		flye = tools['flye'],
 		output_folder = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/flye-racon-medaka/Flye/"
 
-	shell: 
+	shell:
 		"""
 		echo "STEP: Flye; Build: {wildcards.build}; Acronym: {wildcards.acronym}; Method: flye-racon-medaka"
 		{params.flye} --nano-raw {input.reads} -g 1m -o {params.output_folder} -t 4 --asm-coverage 40
@@ -94,7 +58,7 @@ rule Flye:
 		"""
 
 rule Racon:
-	input: 
+	input:
 		scaffold = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/{method}/Racon_input.symlink.fasta",
 		reads = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/Extract_target_region/reads.fastq"
 
@@ -125,7 +89,7 @@ rule Racon:
 		"""
 
 rule Medaka:
-	input: 
+	input:
 		scaffold = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/{method}/Medaka_input.symlink.ctg.fa.gz",
 		reads = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/Extract_target_region/reads.fastq"
 
@@ -148,17 +112,17 @@ rule Medaka:
 		"""
 
 rule Canu:
-	input: 
+	input:
 		reads = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/Extract_target_region/reads.fastq"
-	
+
 	output:
 		consensus = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/canu-racon-medaka/Canu/canu.contigs.fasta",
 		symlink = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/canu-racon-medaka/Racon_input.symlink.fasta"
 
-	params: 
-		canu = tools['canu'],	
+	params:
+		canu = tools['canu'],
 		output_folder = lambda wildcards: get_output_path(wildcards.build, wildcards.acronym, "canu-racon-medaka") + 'Canu/'
-	
+
 	shell:
 		"""
 		echo "STEP: Canu; Build: {wildcards.build}; Acronym: {wildcards.acronym}; Method: canu-racon-medaka"
@@ -192,10 +156,8 @@ rule Wtdbg2:
 
 rule All:
 	input:
-		output_file = [ get_output_file(build, acronym, method) 
-			for build in ["GRCh37", "GRCh38"] 
+		output_file = [ get_output_file(build, acronym, method)
+			for build in ["GRCh37", "GRCh38"]
 			for acronym in acronyms
 			for method in ['flye-racon-medaka', 'wtdbg2-racon-medaka', 'canu-racon-medaka']]
 	threads: 8
-
-
