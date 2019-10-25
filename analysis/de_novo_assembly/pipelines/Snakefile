@@ -9,12 +9,21 @@ def get_region_definition(acronym, build, regions):
 		raise Exception( "No region with  acronym %s and build %s can be found." % ( acronym, build ) )
 	return result[0]
 
-def get_output_path(build, acronym, method):
-	return ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/{method}/".format(build=build, acronym=acronym, method=method)
+def get_output_path(tech, build, acronym, method):
+	return ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/{method}/".format(tech=tech, build=build, acronym=acronym, method=method)
 
-def get_output_file(build, acronyms, method):
-	return get_output_path(build, acronyms, method) + "Output.symlink.fasta"
+def get_output_file(tech, build, acronyms, method):
+	return get_output_path(tech, build, acronyms, method) + "Output.symlink.fasta"
 
+def get_bam_file(tech, build):
+	assert build == "GRCh38"
+	build_number = build[4:]
+	if tech == "ONT":
+		return "/well/longread/projects/nanopore/data/minimap2_all-build{build_number}.bam".format(build_number = build_number)
+	elif tech == "PB-CLR":
+		return "/well/longread/projects/pacbio/data/CLR_190625/m64016_190625_101024.GRCh38.bam"
+	elif tech == "PB-CCS":
+		return "/well/longread/projects/pacbio/data/GRCh38.allCCSreads.bam"
 
 wildcard_constraints:
 	build='GRCh3[7|8]',
@@ -23,11 +32,11 @@ wildcard_constraints:
 
 rule Extract_target_region:
 	input:
-		bam = lambda wildcards: "/well/longread/projects/nanopore/data/minimap2_all-build{build_number}.bam".format(build_number = wildcards.build[4:]),
+		bam = lambda wildcards: get_bam_file(wildcards.tech, wildcards.build),
 		region_definition = ROOT + '/resources/regions.tsv'
 
 	output:
-		reads = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/Extract_target_region/reads.fastq"
+		reads = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/Extract_target_region/reads.fastq"
 
 	params:
 		chromosome = lambda wildcards: get_region_definition(wildcards.acronym, wildcards.build, regions)["chromosome"],
@@ -40,36 +49,38 @@ rule Extract_target_region:
 
 rule Flye:
 	input:
-		reads = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/Extract_target_region/reads.fastq"
+		reads = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/Extract_target_region/reads.fastq"
 
 	output:
-		consensus = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/flye-racon-medaka/Flye/assembly.fasta",
-		symlink = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/flye-racon-medaka/Racon_input.symlink.fasta"
+		consensus = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/flye-racon-medaka/Flye/assembly.fasta",
+		symlink = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/flye-racon-medaka/Racon_input.symlink.fasta"
 
 	params:
 		flye = tools['flye'],
-		output_folder = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/flye-racon-medaka/Flye/"
+		output_folder = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/flye-racon-medaka/Flye/",
+		# TODO: confirm tech_flag for PB-CCS
+		tech_flag = lambda wildcards: {"ONT": "nano-raw", "PB-CLR": "pacbio-raw", "PB-CCS": "pacbio-corr"}[wildcards.tech]
 
 	shell:
 		"""
 		echo "STEP: Flye; Build: {wildcards.build}; Acronym: {wildcards.acronym}; Method: flye-racon-medaka"
-		{params.flye} --nano-raw {input.reads} -g 1m -o {params.output_folder} -t 4 --asm-coverage 40
+		{params.flye} --{params.tech_flag} {input.reads} -g 1m -o {params.output_folder} -t 4 --asm-coverage 40
 		ln -s {output.consensus} {output.symlink}
 		"""
 
 rule Racon:
 	input:
-		scaffold = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/{method}/Racon_input.symlink.fasta",
-		reads = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/Extract_target_region/reads.fastq"
+		scaffold = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/{method}/Racon_input.symlink.fasta",
+		reads = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/Extract_target_region/reads.fastq"
 
 	output:
-		scaffold = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/{method}/3xRacon/racon-3.ctg.fa.gz",
-		symlink = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/{method}/Medaka_input.symlink.ctg.fa.gz"
+		scaffold = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/{method}/3xRacon/racon-3.ctg.fa.gz",
+		symlink = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/{method}/Medaka_input.symlink.ctg.fa.gz"
 
 	params:
 		racon = tools['racon'],
 		minimap2 = tools['minimap2'],
-		output_folder = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/{method}/3xRacon/"
+		output_folder = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/{method}/3xRacon/"
 
 	shell:
 		"""
@@ -90,18 +101,19 @@ rule Racon:
 
 rule Medaka:
 	input:
-		scaffold = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/{method}/Medaka_input.symlink.ctg.fa.gz",
-		reads = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/Extract_target_region/reads.fastq"
+		scaffold = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/{method}/Medaka_input.symlink.ctg.fa.gz",
+		reads = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/Extract_target_region/reads.fastq"
 
 	output:
-		assembly = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/{method}/Medaka/consensus.fasta",
-		symlink = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/{method}/Output.symlink.fasta"
+		assembly = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/{method}/Medaka/consensus.fasta",
+		symlink = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/{method}/Output.symlink.fasta"
 
 	params:
 		medaka = tools['medaka'],
-		output_folder = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/{method}/Medaka/"
+		output_folder = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/{method}/Medaka/"
 
 	shell:
+		# TODO: confirm medaka -m parameter. See https://nanoporetech.github.io/medaka/installation.html
 		"""
 		echo "STEP: Medaka; Build: {wildcards.build}; Acronym: {wildcards.acronym}; Method: {wildcards.method}"
 		# set +u and set -u are necessary: see https://snakemake.readthedocs.io/en/stable/project_info/faq.html#my-shell-command-fails-with-with-errors-about-an-unbound-variable-what-s-wrong
@@ -113,15 +125,17 @@ rule Medaka:
 
 rule Canu:
 	input:
-		reads = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/Extract_target_region/reads.fastq"
+		reads = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/Extract_target_region/reads.fastq"
 
 	output:
-		consensus = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/canu-racon-medaka/Canu/canu.contigs.fasta",
-		symlink = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/canu-racon-medaka/Racon_input.symlink.fasta"
+		consensus = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/canu-racon-medaka/Canu/canu.contigs.fasta",
+		symlink = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/canu-racon-medaka/Racon_input.symlink.fasta"
 
 	params:
 		canu = tools['canu'],
-		output_folder = lambda wildcards: get_output_path(wildcards.build, wildcards.acronym, "canu-racon-medaka") + 'Canu/'
+		output_folder = lambda wildcards: get_output_path(wildcards.tech, wildcards.build, wildcards.acronym, "canu-racon-medaka") + 'Canu/',
+		# TODO: confirm tech_flag for PB-CCS
+		tech_flag = lambda wildcards: {"ONT": "nanopore-raw", "PB-CLR": "pacbio-raw", "PB-CCS": "pacbio-corrected"}[wildcards.tech]
 
 	shell:
 		"""
@@ -129,21 +143,22 @@ rule Canu:
 
 		module load gcc/5.4.0
 		module load java/1.8.0_latest
-		{params.canu} -d {params.output_folder} -p canu genomeSize=1m 'useGrid=false' -nanopore-raw {input.reads}
+		{params.canu} -d {params.output_folder} -p canu genomeSize=1m 'useGrid=false' -{params.tech_flag} {input.reads} -stopOnLowCoverage=1
 		ln -s {output.consensus} {output.symlink}
 		"""
 
 rule Wtdbg2:
 	input:
-		reads = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/Extract_target_region/reads.fastq"
+		reads = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/Extract_target_region/reads.fastq"
 	output:
-		consensus = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/wtdbg2-racon-medaka/Wtdbg2/wtdbg2.ctg.fa",
-		symlink = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/wtdbg2-racon-medaka/Racon_input.symlink.fasta"
+		consensus = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/wtdbg2-racon-medaka/Wtdbg2/wtdbg2.ctg.fa",
+		symlink = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/wtdbg2-racon-medaka/Racon_input.symlink.fasta"
 
 	params:
 		wtdbg2 = tools['wtdbg2'],
-		output_prefix = lambda wildcards: get_output_path(wildcards.build, wildcards.acronym, "wtdbg2-racon-medaka") + 'Wtdbg2/wtdbg2'
+		output_prefix = lambda wildcards: get_output_path(wildcards.tech, wildcards.build, wildcards.acronym, "wtdbg2-racon-medaka") + 'Wtdbg2/wtdbg2'
 	shell:
+		# TODO: check wtdbg2 -x option
 		"""
 		echo "STEP: Wtdbg2; Build: {wildcards.build}; Acronym: {wildcards.acronym}; Method: wtdbg2-racon-medaka"
 
@@ -156,8 +171,9 @@ rule Wtdbg2:
 
 rule All:
 	input:
-		output_file = [ get_output_file(build, acronym, method)
-			for build in ["GRCh37", "GRCh38"]
+		output_file = [ get_output_file(tech, build, acronym, method)
+			for tech in ["PB-CCS", "PB-CLR"]
+			for build in ["GRCh38"]
 			for acronym in acronyms
-			for method in ['flye-racon-medaka', 'wtdbg2-racon-medaka', 'canu-racon-medaka']]
+			for method in ['flye-racon-medaka', 'canu-racon-medaka']]
 	threads: 8

@@ -4,7 +4,7 @@ ROOT = os.environ[ 'BAKEOFF_ROOT' ]
 include: ROOT + "/analysis/shared/scripts/initialize.py"
 
 def get_input_fasta(method):
-	prefix = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/"
+	prefix = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/"
 
 	if method in ("flye-racon-medaka", "canu-racon-medaka", "wtdbg2-racon-medaka"):
 		filename = method + "/Output.symlink.fasta"
@@ -15,7 +15,7 @@ def get_input_fasta(method):
 
 	return prefix + filename
 
-output_file = ROOT + "/analysis/compare_assemblies/align_contigs_to_ref/data/{build}/{acronym}/{method}.bam"
+output_file = ROOT + "/analysis/compare_assemblies/align_contigs_to_ref/data/{tech}/{build}/{acronym}/{method}.bam"
 
 rule Align_contigs_to_ref:
 	input:
@@ -34,8 +34,9 @@ rule Align_contigs_to_ref:
 
 rule All:
 	input:
-		[ output_file.format(build=build, acronym=acronym, method=method)
-			for build in ["GRCh37", "GRCh38"]
+		[ output_file.format(tech=tech, build=build, acronym=acronym, method=method)
+			for tech in TECHNOLOGIES
+			for build in ["GRCh38"]
 			for acronym in acronyms
-			for method in methods + ["flye", "canu", "wtdbg2" ]
+			for method in ["flye-racon-medaka", "canu-racon-medaka", "flye", "canu"]
 			]
