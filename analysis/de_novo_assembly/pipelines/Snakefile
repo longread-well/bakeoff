@@ -138,6 +138,7 @@ rule Canu:
 		tech_flag = lambda wildcards: {"ONT": "nanopore-raw", "PB-CLR": "pacbio-raw", "PB-CCS": "pacbio-corrected"}[wildcards.tech]
 
 	shell:
+		# -stopOnLowCoverage=1 was included to avoid Canu from raising an error
 		"""
 		echo "STEP: Canu; Build: {wildcards.build}; Acronym: {wildcards.acronym}; Method: canu-racon-medaka"
 

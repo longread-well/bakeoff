@@ -27,6 +27,7 @@ methods = ['flye-racon-medaka', 'canu-racon-medaka', 'wtdbg2-racon-medaka']
 builds = ["GRCh37", "GRCh38"]
 
 tools = dict(
+	bandage = "/well/longread/users/akl399/bin/Bandage_CentOS_static_v0_8_1/Bandage",
 	flye = "/well/ont/apps/Flye-2.5/bin/flye",
 	racon = "/well/ont/apps/racon/build/bin/racon",
 	medaka = "/well/ont/apps/medaka/venv/bin/activate",

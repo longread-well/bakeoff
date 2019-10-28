@@ -3,12 +3,12 @@ import os
 ROOT = os.environ[ 'BAKEOFF_ROOT' ]
 include: ROOT + "/analysis/shared/scripts/initialize.py"
 
-output_path = ROOT + "/analysis/compare_assemblies/consensus_vs_ref_selfmap/data/{build}/{acronym}/{method}/"
+output_path = ROOT + "/analysis/compare_assemblies/consensus_vs_ref_selfmap/data/{tech}/{build}/{acronym}/{method}/"
 
 rule Selfmap:
     input:
         ref = ROOT + "/analysis/shared/data/regions/sequence/{build}/{acronym}.fasta",
-        consensus = ROOT + "/analysis/de_novo_assembly/data/{build}/{acronym}/{method}/Output.symlink.fasta"
+        consensus = ROOT + "/analysis/de_novo_assembly/data/{tech}/{build}/{acronym}/{method}/Output.symlink.fasta"
     output:
         k_100_pdf = output_path + "selfmap_k_100.pdf",
     params:
@@ -33,8 +33,9 @@ rule Selfmap:
 
 rule All:
     input:
-        [output_path.format(build = build, acronym = acronym, method = method) + "selfmap_k_100.pdf"
-            for build in builds
+        [output_path.format(tech = tech, build = build, acronym = acronym, method = method) + "selfmap_k_100.pdf"
+            for tech in ["PB-CCS", "PB-CLR"]
+            for build in ['GRCh38']
             for acronym in acronyms
-            for method in methods
+            for method in ['flye-racon-medaka', 'canu-racon-medaka']
             ]

@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# This script generates a txt file containing IGV commands to visualize all bam files within the target dir.
+# Absolute path will be used.
+
 import os, csv, sys
 
 if len(sys.argv) == 3:
