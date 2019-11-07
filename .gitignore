@@ -3,3 +3,5 @@ data/
 *.log
 .snakemake/
 ._*
+.ipynb_checkpoints
+.idea
