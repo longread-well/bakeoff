@@ -1,0 +1,7 @@
+data/
+*.DS_Store
+*.log
+.snakemake/
+._*
+.ipynb_checkpoints
+.idea
