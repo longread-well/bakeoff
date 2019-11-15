@@ -31,14 +31,15 @@ tools = dict(
 	flye = "/well/ont/apps/Flye-2.5/bin/flye",
 	racon = "/well/ont/apps/racon/build/bin/racon",
 	medaka = "/well/ont/apps/medaka/venv/bin/activate",
-	canu = "/well/ont/apps/canu-1.8/Linux-amd64/bin/canu",
+	canu = "/well/longread/users/akl399/bin/canu-1.9/Linux-amd64/bin/canu",
 	wtdbg2 = "/well/ont/apps/wtdbg2",
 	minimap2 = "/well/ont/apps/minimap2-v2.14/minimap2/minimap2",
 	samtools = "/apps/well/samtools/1.4.1/bin/samtools",
 	selfmap = "/well/longread/users/akl399/bin/selfmap_v2.1-dev",
 	selfmap_plot = ROOT + "/analysis/shared/scripts/selfmap_plot.R",
 	Rscript = '/apps/well/R/3.4.3-openblas-0.2.18-omp-gcc5.4.0/bin/Rscript',
-	pdftoppm = "/users/todd/akl399/bin/miniconda/bin/pdftoppm"
+	pdftoppm = "/users/todd/akl399/bin/miniconda/bin/pdftoppm",
+	visualize_bam_file = ROOT + "/analysis/compare_assemblies/visualize_bam_file/scripts/visualize_bam_file.py"
 )
 
 REF = dict(
