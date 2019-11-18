@@ -89,6 +89,9 @@ class Canvas:
             x_min = self.left_limit
             x_max = self.right_limit
 
+        x_max = min(x_max, self.target_region.right * 1.2 - self.target_region.left * 0.2) # Prevent x limit from getting too wide
+        x_min = max(x_min, self.target_region.left * 1.2 - self.target_region.right * 0.2)
+
         # Create figure
         figure_height = max(3, 0.5 * self.y)
         plt.figure(figsize = (10, figure_height))
@@ -695,9 +698,9 @@ def region_overlap(region1, region2):
 if __name__ == "__main__":
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Visualize regional assemblies and calculate assembly statistics')
-    parser.add_argument('--i', required = True, help = "Path containing bam files")
-    parser.add_argument('--o', required = True, help = "Path to store output image and statictics")
-    parser.add_argument('--r', required = True, help = "Genome region of interest; format: chr14:21170441-22134544")
+    parser.add_argument('-i', required = True, help = "Path containing bam files")
+    parser.add_argument('-o', required = True, help = "Path to store output image and statictics")
+    parser.add_argument('-r', required = True, help = "Genome region of interest; format: chr14:21170441-22134544")
     args = parser.parse_args()
     input_dir = args.i
     input_dir = os.path.join(input_dir, '') # add tailing "/" if missing
@@ -708,9 +711,11 @@ if __name__ == "__main__":
 
     # Load assemblies
     bamfiles = [os.path.join(input_dir, f) for f in os.listdir(input_dir)
-                if os.path.isfile(os.path.join(input_dir, f)) and f.split('.')[-1] == 'bam']
+                if os.path.isfile(os.path.join(input_dir, f)) and f.split('.')[-1] == 'bam' and f[0] != '.']
     bamfiles.sort() # Display bamfiles with similar names next to each other
     print("Found {n} bam files".format(n = len(bamfiles)))
+    for b in bamfiles:
+        print(b)
     assemblies = [read_bam_file(bamfile) for bamfile in bamfiles]
 
     canvas = Canvas(target_region)

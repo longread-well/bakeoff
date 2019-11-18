@@ -32,7 +32,7 @@ rule visualize_bam_file:
     shell:
         """
         set +u; source activate /users/todd/akl399/bin/miniconda/envs/Longread; set -u
-        python3 {params.visualize} --i {params.input_dir} --o {params.output_dir} --r {params.chromosome}:{params.start}-{params.end}
+        python3 {params.visualize} -i {params.input_dir} -o {params.output_dir} -r {params.chromosome}:{params.start}-{params.end}
         """
 
 rule All:
