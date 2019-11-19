@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 import pandas as pd
 import argparse
+from matplotlib import cm
 
 
 ROOT = os.environ[ 'BAKEOFF_ROOT' ]
@@ -132,8 +133,8 @@ class Canvas:
             plt.text(label_x_position, annotation.y + 0.05, annotation.name, ha = 'right', va = 'bottom')
 
         # Draw a pair of vertical lines marking our region of interest
-        plt.gca().axvline(x = self.target_region.left, linewidth=1, linestyle='--', color='whitesmoke', zorder = 0.1)
-        plt.gca().axvline(x = self.target_region.right, linewidth=1, linestyle='--', color='whitesmoke', zorder = 0.1)
+        plt.gca().axvline(x = self.target_region.left, linewidth=1, linestyle='--', color='lightgray', zorder = 0.1)
+        plt.gca().axvline(x = self.target_region.right, linewidth=1, linestyle='--', color='lightgray', zorder = 0.1)
 
         # Hide ticks on y axis
         plt.tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
@@ -292,7 +293,7 @@ class Assembly:
             row.draw(self.y0)
 
         # Draw a horizontal seperating line
-        plt.gca().axhline(y = self.y0, linewidth=1, color='whitesmoke')
+        plt.gca().axhline(y = self.y0, linewidth=1, color='lightgray')
 
     def NGx_plot(self):
         x = [0]
@@ -394,11 +395,14 @@ class Contig:
         width = self.right - self.left
         line_height = 0.05
         ax = plt.gca()
+
+        color = cm.viridis(self.NM_percentage / 0.05) # Brighter colors denote higher NM%
+
         global RECTANGLE_HEIGHT
         ax.add_patch(patches.Rectangle((self.left, y + 0.5 * RECTANGLE_HEIGHT - 0.5 * line_height),
-                                       width, line_height, facecolor = "darkgray", edgecolor=None, zorder=0.8))
+                                       width, line_height, facecolor = color, edgecolor=None, zorder=0.8))
         for block in self.blocks:
-            block.draw(y)
+            block.draw(y, color)
 
         if self.insertions:
             for insertion in self.insertions:
@@ -421,11 +425,11 @@ class Block:
         self.width = self.right - self.left + 1
         self.y = None
 
-    def draw(self, y):
+    def draw(self, y, color):
         if self.right - self.left < ALIGN_CONTINGENCY:
             return
         else:
-            rectangle_color = "forestgreen"
+            rectangle_color = color
         ax = plt.gca()
         ax.add_patch(patches.Rectangle((self.left, y), self.width, RECTANGLE_HEIGHT, zorder=1, facecolor=rectangle_color, edgecolor=None))
 
@@ -632,7 +636,7 @@ class Annotation():
             entry.draw(self.y + 1)
 
         # Draw a horizontal seperating line
-        plt.gca().axhline(y = self.y, linewidth=1, color='whitesmoke')
+        plt.gca().axhline(y = self.y, linewidth=1, color='lightgray')
 
     def __repr__(self):
         output = "Annotation {name} (y = {y})\n".format(name = self.name, y = self.y)
