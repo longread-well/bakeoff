@@ -1,0 +1,10 @@
+{
+        "__default__": {
+                "cores": "24",
+                "queue": "long.qc,long.qf,himem.qh",
+                "project": "kwiatkowski.prjc",
+                "logdir": "logs",
+                "name": "wtdbg2.{rule}.{wildcards}"
+        }
+}
+
