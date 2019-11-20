@@ -238,21 +238,18 @@ class Assembly:
         chromosome, ref_left, ref_right = target_region.chromosome, target_region.left, target_region.right
         ref_size = ref_right - ref_left + 1
 
-        # NG50
-        self.contigs.sort(key = lambda contig: contig.width, reverse = True)
-
-        total_width = 0
-        self.NG50 = 0
+        # Effective width
         for contig in self.contigs:
-            total_width += contig.width
-            if total_width >= 0.5 * ref_size:
-                self.NG50 = contig.width
-                break
+            effective_left = max(contig.left, ref_left)
+            effective_right = min(contig.right, ref_right)
+            effective_width = effective_right - effective_left + 1
+            contig.effective_width = effective_width
 
         # Coverage
         ref_covered = [False for position in range(ref_right - ref_left + 1)]
         coverage = pd.DataFrame(columns = ("i", "contig_length", "covered_percentage"))
         i = 0
+        self.contigs.sort(key = lambda contig: contig.effective_width, reverse = True)
         for contig in self.contigs:
             i += 1
             contig_start = contig.left - ref_left
@@ -265,7 +262,7 @@ class Assembly:
                 ref_covered[j] = True
             covered_percentage = sum(ref_covered) / ref_size
             coverage = coverage.append(
-                pd.DataFrame({"i":[i], "contig_length":[contig.width], "covered_percentage":[covered_percentage]}))
+                pd.DataFrame({"i":[i], "contig_length":[contig.effective_width], "covered_percentage":[covered_percentage]}))
 
         self.coverage = coverage
 
@@ -296,14 +293,15 @@ class Assembly:
         plt.gca().axhline(y = self.y0, linewidth=1, color='lightgray')
 
     def NGx_plot(self):
+        # (0, l1), (c1, l1), (c1, l2), (c2, l2), (c2, l3), ... , (cn, ln)
         x = [0]
         y = [self.coverage.iloc[0, 1]]
         for i in range(len(self.coverage) - 1):
             x.append(self.coverage.iloc[i, 2])
             y.append(self.coverage.iloc[i, 1])
 
-            x.append(self.coverage.iloc[i + 1, 2])
-            y.append(self.coverage.iloc[i, 1])
+            x.append(self.coverage.iloc[i, 2])
+            y.append(self.coverage.iloc[i + 1, 1])
 
         x.append(self.coverage.iloc[-1, 2])
         y.append(self.coverage.iloc[-1, 1])
