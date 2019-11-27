@@ -16,6 +16,8 @@ This can be set (for example) in `~/.bashrc` to make it always available.
 
 This has the advantages that a) we don't need to store absolute paths in scripts, and b) it's useful to run the same scripts on other folders, e.g. test folders, and c) it's useful to port code to other machines where the mount point differs. 
 
+A copy of this repository is at `${BAKEOFF_ROOT}/bakeoff-scripts`.
+
 To use an environment variable in R:
 ```R
 BAKEOFF_ROOT = Sys.getenv( "BAKEOFF_ROOT" )
