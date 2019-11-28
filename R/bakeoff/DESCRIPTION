@@ -1,0 +1,15 @@
+Package: bakeoff
+Title: Package for longread bakeoff
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Gavin",
+           family = "Band",
+           role = c("aut", "cre"),
+           email = "gavin.band@well.ox.ac.uk",
+           comment = c(ORCID = "0000-0002-1710-9024"))
+Description: Code to create figures and analysis for longread bakeoff
+License: Boost Software License
+Encoding: UTF-8
+LazyData: true
+Imports:
+	RSQLite

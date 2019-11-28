@@ -1,0 +1,9 @@
+{
+        "__default__": {
+                "cores": "1",
+                "queue": "short.qc",
+                "project": "kwiatkowski.prjc",
+                "logdir": "logs"
+        }
+}
+
