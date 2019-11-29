@@ -7,8 +7,7 @@ def getPath( relativePath ):
 vcfs = {
 	#'10X': getPath( 'projects/wgs_10x/SVs/JK_HV31_3/outs/phased_variants.vcf.gz' ),
 	'10X': getPath( 'users/gav/tmp/10X_phased_variants.vcf.gz' ),
-	#'nanopore': '%s/projects/nanopore//snv-calling/longshot-chr22-build38.vcf' % ROOT
-	'nanopore': getPath( 'users/gav/tmp/longshot-chr22-build38.vcf.gz' )
+	'nanopore': getPath( 'shared/analysis/hroberts/nanopore/snv-calling/longshot-chr22-build38.vcf' )
 }
 
 gnomAD = getPath( 'projects/reference/GRCh38/gnomad/gnomad.genomes.r2.1.1.sites.liftover_grch38.vcf.bgz' )
@@ -29,7 +28,7 @@ rule all:
 rule getSNPs:
 	input:
 		vcf = lambda x: vcfs[ x.platform ],
-		mask = getPath( "shared/masks/20160622.strict_mask_GRCh38.whole_genome.bed" ),
+		mask = getPath( "projects/reference/GRCh38/masks/20160622.strict_mask_GRCh38.whole_genome.bed" ),
 		ref = getPath( "projects/reference/GRCh38/10X/refdata-GRCh38-2.1.0/fasta/genome.fa" )
 	output:
 		result = 'vcf/{platform}.normalised.vcf.gz',

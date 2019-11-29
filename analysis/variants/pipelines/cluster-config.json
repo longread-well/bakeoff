@@ -1,0 +1,7 @@
+{
+        "__default__": {
+                "cores": "1",
+                "logdir": "logs"
+        }
+}
+

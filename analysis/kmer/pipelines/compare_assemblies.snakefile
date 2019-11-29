@@ -1,5 +1,4 @@
 import csv, os
-
 ROOT = os.environ[ 'BAKEOFF_ROOT' ]
 
 def loadRegions( filename = '../resources/regions.tsv' ):
@@ -23,6 +22,7 @@ tools = {
 	'clustalo': '/apps/well/clustal-omega/1.2.1/bin/clustalo',
 	'mummer': '/apps/well/mummer/3.23-2-gcc4.7.2',
 	'selfmap': '/users/kwiatkowski/gav/Projects/Software/usr/bin/selfmap_v2.1-dev',
+	'selfmap.R': '%s/shared/analysis/bakeoff-scripts/analysis/kmer/scripts/selfmap.R' % ROOT,
 	'Rscript': '/apps/well/R/3.4.3-openblas-0.2.18-omp-gcc5.4.0/bin/Rscript'
 }
 
@@ -115,7 +115,7 @@ rule selfmapPlot:
 		chromosome_b38 = lambda x: getRegionDefinition( x.acronym, 'GRCh37' )['chromosome']
 	shell:
 		"""
-			{tools[Rscript]} --vanilla ../resources/scripts/selfmap.R \
+			{tools[Rscript]} --vanilla {tools[selfmap.R]} \
 			--s1 'GRCh37={input.b37}' \
 			--s2 'GRCh38={input.b38}' \
 			--k 100 \
@@ -134,7 +134,7 @@ rule vsNanoporeSelfmapPlot:
 		chromosome = lambda x: getRegionDefinition( x.acronym, x.build )['chromosome'],
 	shell:
 		"""
-			{tools[Rscript]} --vanilla ../resources/scripts/selfmap.R \
+			{tools[Rscript]} --vanilla {tools[selfmap.R]} \
 			--s1 '{wildcards.build}={input.build}' \
 			--s2 '{wildcards.method}={input.assembled}' \
 			--k 100 \
@@ -146,7 +146,7 @@ rule vsNanoporeSelfmapPlot:
 rule vsNanoporeNucmerCompare:
 	input:
 		reference = "regions/sequence/{acronym}.{build}.fa",
-		assembled = "%s/projects/nanopore/{acronym}_assembly_test/{method}/consensus.fasta" % BAKEOFF_ROOT
+		assembled = "%s/shared/analysis/hroberts/nanopore/{acronym}_assembly_test/{method}/consensus.fasta" % BAKEOFF_ROOT
 	output:
 		delta = "regions/comparison/{acronym}.{build}-{method}.delta",
 		coords = "regions/comparison/{acronym}.{build}-{method}.coords",
