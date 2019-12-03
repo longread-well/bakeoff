@@ -50,3 +50,13 @@ REF = dict(
 	)
 
 TECHNOLOGIES = ['ONT', 'PB-CCS', 'PB-CLR']
+
+def get_region_definition(acronym, build, regions):
+	result = [ region for region in regions if region['build'] == build and region['acronym'] == acronym ]
+	if len( result ) != 1:
+		raise Exception( "No region with  acronym %s and build %s can be found." % ( acronym, build ) )
+	chromosome = result[0]['chromosome']
+	start = result[0]['start']
+	end = result[0]['end']
+	region = chromosome + ":" + start + "-" + end
+	return region
