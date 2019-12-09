@@ -127,7 +127,7 @@ rule selfmapPlot:
 rule vsNanoporeSelfmapPlot:
 	input:
 		build = "regions/sequence/{acronym}.{build}.fa",
-		assembled = "%s/projects/nanopore/{acronym}_assembly_test/{method}/consensus.fasta" % BAKEOFF_ROOT
+		assembled = "%s/projects/nanopore/{acronym}_assembly_test/{method}/consensus.fasta" % ROOT
 	output:
 		dotplot = "regions/images/{acronym}.{build}-{method}.k=100.dotplot.pdf"
 	params:
@@ -146,7 +146,7 @@ rule vsNanoporeSelfmapPlot:
 rule vsNanoporeNucmerCompare:
 	input:
 		reference = "regions/sequence/{acronym}.{build}.fa",
-		assembled = "%s/shared/analysis/hroberts/nanopore/{acronym}_assembly_test/{method}/consensus.fasta" % BAKEOFF_ROOT
+		assembled = "%s/shared/analysis/hroberts/nanopore/{acronym}_assembly_test/{method}/consensus.fasta" % ROOT
 	output:
 		delta = "regions/comparison/{acronym}.{build}-{method}.delta",
 		coords = "regions/comparison/{acronym}.{build}-{method}.coords",
