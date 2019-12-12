@@ -39,7 +39,7 @@ tools = dict(
 	selfmap_plot = ROOT + "/analysis/shared/scripts/selfmap_plot.R",
 	Rscript = '/apps/well/R/3.4.3-openblas-0.2.18-omp-gcc5.4.0/bin/Rscript',
 	pdftoppm = "/users/todd/akl399/bin/miniconda/bin/pdftoppm",
-	visualize_bam_file = ROOT + "/analysis/shared/scripts/visualize_bam_file.py"
+	visualize_bam_file = ROOT + "/analysis/shared/scripts/visualize_bam_file_v2.py"
 )
 
 REF = dict(
@@ -50,13 +50,3 @@ REF = dict(
 	)
 
 TECHNOLOGIES = ['ONT', 'PB-CCS', 'PB-CLR']
-
-def get_region_definition(acronym, build, regions):
-	result = [ region for region in regions if region['build'] == build and region['acronym'] == acronym ]
-	if len( result ) != 1:
-		raise Exception( "No region with  acronym %s and build %s can be found." % ( acronym, build ) )
-	chromosome = result[0]['chromosome']
-	start = result[0]['start']
-	end = result[0]['end']
-	region = chromosome + ":" + start + "-" + end
-	return region

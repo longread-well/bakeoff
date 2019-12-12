@@ -16,7 +16,7 @@ rule Align_contigs_to_ref:
 		samtools = tools['samtools']
 	shell:
 		"""
-		{params.minimap2} -a {input.ref} {input.fasta} | {params.samtools} view -bS - | {params.samtools} sort -o {output.bam} -
+		{params.minimap2} -a {input.ref} {input.fasta} -g 500000 | {params.samtools} view -bS - | {params.samtools} sort -o {output.bam} -
 		{params.samtools} index {output.bam}
 		"""
 

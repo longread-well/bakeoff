@@ -244,7 +244,7 @@ class Contig:
                 deletion.draw(y0)
 
     def __repr__(self):
-        output = "Contig ({region}, {m} blocks, {n} insertions, {p} deletions) \n".format(
+        output = "\tContig ({region}, {m} blocks, {n} insertions, {p} deletions) \n".format(
             region = self.region.__repr__(), m = len(self.blocks), n = len(self.insertions), p = len(self.deletions))
         return output
 
@@ -320,6 +320,45 @@ class Raw:
         self.reads.append(read)
         self.n = len(self.reads)
 
+    def draw(self, y0):
+        pass
+
+
+class Read:
+    def __init__(self):
+        self.left, self.right = None, None
+        self.insertions = []
+        self.deletions = []
+        self.height = 0.2
+
+    def add_block(self, block):
+        self.blocks.append(block)
+        if self.left is None or self.left > block.left:
+            self.left = block.left
+        if self.right is None or self.right < block.left:
+            self.right = block.right
+        self.length = self.right - self.left + 1
+
+    def add_insertion(self, insertion):
+        self.insertions.append(insertion)
+
+    def add_deletion(self, deletion):
+        self.deletions.append(deletion)
+
+    def draw(self, y0):
+        # draw an arrow
+        color = 'gray'
+        plt.gca().add_patch(patches.Rectangle((self.left, y0 - 0.5 * self.height), self.length, self.height, zorder=1, facecolor=color, edgecolor=None))
+        for insertion in self.insertions:
+            insertion.draw(y0)
+        for deletion in self.deletions:
+            deletion.draw(y0)
+        
+
+
+
+
+
 class Gene_Annotation:
     def __init__(self, target_region):
         self.type = "Gene_Annotation"
@@ -327,8 +366,8 @@ class Gene_Annotation:
         self.name = "Genes"
         self.region = target_region
         self.chromosome, self.left, self.right = target_region.chromosome, target_region.left, target_region.right
-        self.delta_y = 0.5
-        self.bottom_padding = 0.7
+        self.delta_y = 1
+        self.bottom_padding = 1
         self.top_padding = 0.5
 
 
@@ -357,18 +396,24 @@ class Gene:
         self.length = self.right - self.left + 1
         self.exons = [] # TODO
         self.protein_coding = None
+        np.random.seed(hash(self.name) % (2**32 - 1)) # Ensure each gene gets the same color every time it is drawn
+        self.color = np.random.rand(3,) * 0.8
 
     def draw(self, y0, x_min, x_max):
         # Draw rectangles
-        c = np.random.rand(3,) * 0.8
+        c = self.color
         plt.gca().add_patch(patches.Rectangle((self.left, y0 - 0.5 * RECTANGLE_HEIGHT), self.length, RECTANGLE_HEIGHT, zorder=1,
                                        facecolor=c, edgecolor=None, alpha=0.8))
 
         # Label genes
         label_top_padding = 0.05
-        if self.length >= 0.005 * (x_max - x_min):
+        if self.length >= 0.002 * (x_max - x_min):
             center = (self.left + self.right)/2
-            plt.text(center, y0 - 0.5 * RECTANGLE_HEIGHT - label_top_padding, self.name, ha='center', va='top', color=c, fontsize=3, rotation = 90, clip_on=True)
+            if len(self.name) > 10:
+                t = self.name[:8] + "..."
+            else:
+                t = self.name
+            plt.text(center, y0 - 0.5 * RECTANGLE_HEIGHT - label_top_padding, t, ha='center', va='top', color=c, fontsize=3, rotation = 90, clip_on=True)
 
     def __repr__(self):
         output = "Gene {name} ({region})".format(name = self.name, region = self.region.__repr__())
@@ -627,7 +672,7 @@ if __name__ == "__main__":
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     plt.savefig(os.path.join(output_dir, "assemblies.svg"))
-    plt.savefig(os.path.join(output_dir, "assemblies.png"), dpi = 300)
+    plt.savefig(os.path.join(output_dir, "assemblies.png"), dpi = 600)
 
     plt.figure(figsize = (8, 4))
 
