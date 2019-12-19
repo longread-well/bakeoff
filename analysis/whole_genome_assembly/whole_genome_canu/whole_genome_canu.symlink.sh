@@ -1,1 +1,0 @@
-scripts/whole_genome_canu.sh

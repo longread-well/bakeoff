@@ -12,7 +12,9 @@ def load_regions( filename = ROOT + '/resources/regions.tsv' ):
 			('chromosome', 'chr14'), ('start', '21170441'),
 			('end', '22134544'),
 			('start_sequence', 'CCTACCCCACACACTTATCACCCAGCAGGGAACCCTCAGGTTGGGCCCACAGCCCCCATT'),
-			('end_sequence', 'CCCTGGAAACCATTATTTTATTCTCTGCTTCTATGAATTTGACTATTTTAGATACCTCAAATAAGTGTAATCATGCATTATTTG')])
+			('end_sequence', 'CCCTGGAAACCATTATTTTATTCTCTGCTTCTATGAATTTGACTATTTTAGATACCTCAAATAAGTGTAATCATGCATTATTTG')，
+			('length', '964103')
+			])
 	"""
 	regions = []
 	with open( filename, newline = '' ) as file:
@@ -23,7 +25,6 @@ def load_regions( filename = ROOT + '/resources/regions.tsv' ):
 
 regions = load_regions()
 acronyms = [region['acronym'] for region in regions]
-methods = ['flye-racon-medaka', 'canu-racon-medaka', 'wtdbg2-racon-medaka']
 builds = ["GRCh37", "GRCh38"]
 
 tools = dict(
@@ -39,7 +40,11 @@ tools = dict(
 	selfmap_plot = ROOT + "/analysis/shared/scripts/selfmap_plot.R",
 	Rscript = '/apps/well/R/3.4.3-openblas-0.2.18-omp-gcc5.4.0/bin/Rscript',
 	pdftoppm = "/users/todd/akl399/bin/miniconda/bin/pdftoppm",
-	visualize_bam_file = ROOT + "/analysis/shared/scripts/visualize_bam_file_v2.py"
+	visualize_bam_file = ROOT + "/analysis/shared/scripts/visualize_bam_file_v2.py",
+	extract_raw_reads = ROOT + "/analysis/shared/scripts/extract_raw_reads.py",
+	bakeoff_env = "/well/longread/users/akl399/env/bakeoff",
+	sda = "/well/longread/users/akl399/bin/SDA/SDA",
+	kmer_plot = ROOT + "/analysis/shared/scripts/kmer_plot.py",
 )
 
 REF = dict(

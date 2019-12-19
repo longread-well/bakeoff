@@ -17,39 +17,60 @@ def get_output_file(tech, build, acronyms, method):
 
 def get_bam_file(tech, build):
 	assert build == "GRCh38"
-	build_number = build[4:]
 	if tech == "ONT":
-		return "/well/longread/projects/nanopore/data/minimap2_all-build{build_number}.bam".format(build_number = build_number)
+		return "/well/longread/projects/nanopore/data/aligned/minimap2/combined/minimap2_all-build38.bam"
 	elif tech == "PB-CLR":
-		return "/well/longread/projects/pacbio/data/CLR_190625/m64016_190625_101024.GRCh38.bam"
+		return "/well/longread/projects/pacbio/data/aligned/pbmm2/clr/CLR_190625/m64016_190625_101024.GRCh38.bam"
 	elif tech == "PB-CCS":
-		return "/well/longread/projects/pacbio/data/GRCh38.allCCSreads.bam"
+		return "/well/longread/projects/pacbio/data/aligned/pbmm2/ccs/combined/GRCh38.allCCSreads.bam"
+	else:
+		raise Exception("Parameter error")
+
+def get_fastq_file(tech):
+	# TODO
+	if tech == "ONT":
+		return ROOT + "/resources/data/ONT/JK_HV31.ont.fastq"
+	elif tech == "PB-CCS":
+		return ROOT + "/resources/data/PB-CCS/JK_HV31.ccs.fastq"
+	elif tech == "PB-CLR":
+		return ROOT + "/resources/data/PB-CLR/JK_HV31.clr.fastq"
+	else:
+		raise Exception("Parameter error")
 
 wildcard_constraints:
 	build='GRCh3[7|8]',
 	acronym=r'\w+'
 
-
-rule Extract_target_region:
+rule Extract_reads:
 	input:
 		bam = lambda wildcards: get_bam_file(wildcards.tech, wildcards.build),
+		fastq = lambda wildcards: get_fastq_file(wildcards.tech),
 		region_definition = ROOT + '/resources/regions.tsv'
 
 	output:
-		reads = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Extract_target_region/reads.fastq"
+		mapped_bam = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Raw_reads/mapped_reads.bam",
+		mapped_fastq = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Raw_reads/mapped_reads.fastq",
+		raw_fastq = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Raw_reads/raw_reads.fastq",
 
 	params:
 		chromosome = lambda wildcards: get_region_definition(wildcards.acronym, wildcards.build, regions)["chromosome"],
 		start = lambda wildcards: get_region_definition(wildcards.acronym, wildcards.build, regions)["start"],
 		end = lambda wildcards: get_region_definition(wildcards.acronym, wildcards.build, regions)["end"],
 		samtools = tools['samtools'],
+		extract_raw_reads = tools['extract_raw_reads'],
+		bakeoff_env = tools['bakeoff_env']
 
 	shell:
-		"{params.samtools} view -b {input.bam} {params.chromosome}:{params.start}-{params.end} | {params.samtools} fastq - > {output.reads}"
+		"""
+		{params.samtools} view -b {input.bam} {params.chromosome}:{params.start}-{params.end} -o {output.mapped_bam}
+		{params.samtools} fastq {output.mapped_bam} > {output.mapped_fastq}
+		set +u; source activate {params.bakeoff_env}; set -u
+		python {params.extract_raw_reads} -mapped {output.mapped_fastq} -all {input.fastq} -out {output.raw_fastq}
+		"""
 
 rule Flye:
 	input:
-		reads = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Extract_target_region/reads.fastq"
+		reads = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Raw_reads/raw_reads.fastq"
 
 	output:
 		consensus = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Flye/assembly.fasta",
@@ -58,19 +79,19 @@ rule Flye:
 	params:
 		flye = tools['flye'],
 		output_folder = lambda wildcards: get_output_path(wildcards.tech, wildcards.build, wildcards.acronym, "Flye"),
-		# TODO: confirm tech_flag for PB-CCS
-		tech_flag = lambda wildcards: {"ONT": "nano-raw", "PB-CLR": "pacbio-raw", "PB-CCS": "pacbio-corr"}[wildcards.tech]
+		tech_flag = lambda wildcards: {"ONT": "nano-raw", "PB-CLR": "pacbio-raw", "PB-CCS": "pacbio-corr"}[wildcards.tech],
+		length = lambda wildcards: get_region_definition(wildcards.acronym, wildcards.build, regions)["length"],
 
 	shell:
 		"""
-		{params.flye} --{params.tech_flag} {input.reads} -g 1m -o {params.output_folder} -t 4 --asm-coverage 40
+		{params.flye} --{params.tech_flag} {input.reads} -g {params.length} -o {params.output_folder} -t 4 --asm-coverage 40
 		ln -s {output.consensus} {output.symlink}
 		"""
 
 rule Medaka:
 	input:
 		scaffold = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/{method}/Output.symlink.fasta",
-		reads = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Extract_target_region/reads.fastq"
+		reads = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Raw_reads/raw_reads.fastq"
 	output:
 		assembly = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/{method}_Medaka/consensus.fasta",
 		symlink = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/{method}_Medaka/Output.symlink.fasta"
@@ -89,7 +110,7 @@ rule Medaka:
 
 rule Canu:
 	input:
-		reads = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Extract_target_region/reads.fastq"
+		reads = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Raw_reads/raw_reads.fastq"
 
 	output:
 		consensus = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Canu/canu.contigs.fasta",
@@ -98,7 +119,8 @@ rule Canu:
 	params:
 		canu = tools['canu'],
 		output_folder = lambda wildcards: get_output_path(wildcards.tech, wildcards.build, wildcards.acronym, "Canu"),
-		tech_flag = lambda wildcards: {"ONT": "nanopore-raw", "PB-CLR": "pacbio-raw", "PB-CCS": "pacbio-hifi"}[wildcards.tech]
+		tech_flag = lambda wildcards: {"ONT": "nanopore-raw", "PB-CLR": "pacbio-raw", "PB-CCS": "pacbio-hifi"}[wildcards.tech],
+		length = lambda wildcards: get_region_definition(wildcards.acronym, wildcards.build, regions)["length"],
 
 	shell:
 		# -stopOnLowCoverage=1 was included to avoid Canu from raising an error
@@ -106,13 +128,13 @@ rule Canu:
 		"""
 		module load gcc/5.4.0
 		module load java/1.8.0_latest
-		{params.canu} -d {params.output_folder} -p canu genomeSize=1m 'useGrid=false' -{params.tech_flag} {input.reads} -stopOnLowCoverage=1
+		{params.canu} -d {params.output_folder} -p canu genomeSize={params.length} 'useGrid=false' -{params.tech_flag} {input.reads} -stopOnLowCoverage=1
 		ln -s {output.consensus} {output.symlink}
 		"""
 
 rule Wtdbg2:
 	input:
-		reads = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Extract_target_region/reads.fastq"
+		reads = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Raw_reads/raw_reads.fastq"
 	output:
 		consensus = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Wtdbg2/Wtdbg2.ctg.fa",
 		symlink = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Wtdbg2/Output.symlink.fasta"
@@ -120,19 +142,21 @@ rule Wtdbg2:
 	params:
 		wtdbg2 = tools['wtdbg2'],
 		output_prefix = lambda wildcards: get_output_path(wildcards.tech, wildcards.build, wildcards.acronym, "Wtdbg2") + "Wtdbg2",
-		tech_flag = lambda wildcards: {"ONT": "ont", "PB-CLR": "sq", "PB-CCS": "ccs"}[wildcards.tech]
+		tech_flag = lambda wildcards: {"ONT": "ont", "PB-CLR": "sq", "PB-CCS": "ccs"}[wildcards.tech],
+		length = lambda wildcards: get_region_definition(wildcards.acronym, wildcards.build, regions)["length"],
 	shell:
 		# TODO: check wtdbg2 -x option (RSII or Squell for CLR?) See https://github.com/ruanjue/wtdbg2
 		"""
-		{params.wtdbg2}/wtdbg2 -x {params.tech_flag} -g 1m -t 4 -i {input.reads} -fo {params.output_prefix}
+		{params.wtdbg2}/wtdbg2 -x {params.tech_flag} -g {params.length} -t 4 -i {input.reads} -fo {params.output_prefix}
 		{params.wtdbg2}/wtpoa-cns -t 4 -i {params.output_prefix}.ctg.lay.gz -fo {params.output_prefix}.ctg.fa
 
 		ln -s {output.consensus} {output.symlink}
 		"""
 
 rule Falcon:
+	# TODO
 	input:
-		reads = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Extract_target_region/reads.fastq"
+		reads = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Raw_reads/raw_reads.fastq"
 	output:
 		symlink = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Falcon/Output.symlink.fasta"
 	params:
@@ -150,7 +174,23 @@ rule Falcon:
 		fc_run {params.cfg}
 		rm {params.fofn}
 		"""
-
+rule SDA:
+	input:
+		reads = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Raw_reads/raw_reads.fastq",
+		contigs = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/{method}/Output.symlink.fasta",
+	output:
+		symlink = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/{method}_SDA/Output.symlink.fasta"
+	params:
+		sda = tools['sda'],
+		tech_flag = lambda wildcards: {"ONT": "ont", "PB-CCS": "ccs", "PB-CLR": "subread"}[wildcards.tech],
+		output_path = lambda wildcards: get_output_path(wildcards.tech, wildcards.build, wildcards.acronym, wildcards.method + "_SDA"),
+		samtools = tools['samtools']
+	shell:
+		"""
+		{params.samtools} faidx {input.contigs}
+		echo "{input.reads}" > {params.output_path}reads.fofn
+		{params.sda} denovo --fofn {params.output_path}/reads.fofn --species human --ref {input.contigs} --dir {params.output_path} --prefix sda --assemblers canu --drmaa " -l mfree={{resources.mem}}G -pe serial {{threads}} -l h_rt=128:00:00 -V -cwd -j y -S /bin/bash -N SDA -P todd.prjc -q himem.qh -o qsub_output.log -e qsub_error.log"
+		"""
 
 output_files = []
 for tech in ["ONT", "PB-CCS", "PB-CLR"]:
@@ -167,4 +207,3 @@ for tech in ["ONT", "PB-CCS", "PB-CLR"]:
 rule All:
 	input:
 		output_files
-	threads: 8

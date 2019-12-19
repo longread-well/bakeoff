@@ -65,7 +65,7 @@ rule Summarize:
         end = lambda wildcards: get_region_definition(wildcards.acronym, wildcards.build, regions)["end"],
     shell:
         """
-        set +u; source activate /users/todd/akl399/bin/miniconda/envs/Longread; set -u
+        set +u; source activate /well/longread/users/akl399/env/bakeoff; set -u
         python {params.visualize} -i {params.input_dir} -o {params.output_dir} -r {params.chromosome}:{params.start}-{params.end}
         """
 
