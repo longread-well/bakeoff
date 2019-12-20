@@ -10,9 +10,9 @@ import os
 SELFMAP = "/well/longread/users/akl399/bin/selfmap/selfmap_v2.1-dev"
 
 def hash_to_rgba(hash_value):
-    h = hash_value % 1000 / 1000
-    s = 0.8
-    l = hash_value % 999 / 999 * 0.4 + 0.3 # Brightness range: 0.3-0.7
+    h = hash_value % 1000 / 1000 # Hue range: 0-1
+    s = hash_value % 1001 / 1001 * 0.2 + 0.65 # Saturation range: 0.65-0.85
+    l = hash_value % 999 / 999 * 0.4 + 0.3 # Lightness range: 0.3-0.7
     a = 0.05
 
     def hsl_to_rgb(h, s, l):
@@ -104,3 +104,6 @@ if __name__ == "__main__":
 
 
     plt.savefig(args.o, dpi = 300)
+    if os.path.exists(selfmap_output):
+        os.remove(selfmap_output)
+        print("Temp file removed")
