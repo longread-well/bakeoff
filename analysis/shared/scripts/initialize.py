@@ -45,6 +45,7 @@ tools = dict(
 	bakeoff_env = "/well/longread/users/akl399/env/bakeoff",
 	sda = "/well/longread/users/akl399/bin/SDA/SDA",
 	kmer_plot = ROOT + "/analysis/shared/scripts/kmer_plot.py",
+	purge_haplotigs = "/well/longread/users/akl399/env/purge_haplotigs_env",
 )
 
 REF = dict(

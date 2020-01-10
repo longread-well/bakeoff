@@ -26,7 +26,7 @@ rule Align_WGA_contigs:
 		samtools = tools['samtools']
 	shell:
 		"""
-		{params.minimap2} -a {input.ref} {input.fasta} -g 500000 -x asm20 | {params.samtools} view -bS - | {params.samtools} sort -o {output.bam} -
+		{params.minimap2} -ax asm5 {input.ref} {input.fasta} --secondary=no | {params.samtools} view -bS - | {params.samtools} sort -o {output.bam} -
 		{params.samtools} index {output.bam}
 		"""
 
@@ -60,7 +60,7 @@ rule Align_regional_contigs:
 		acronym = ".{3,4}"
 	shell:
 		"""
-		{params.minimap2} -a {input.ref} {input.fasta} -g 500000 -x asm20 | {params.samtools} view -bS - | {params.samtools} sort -o {output.bam} -
+		{params.minimap2} -ax asm5 {input.ref} {input.fasta} --secondary=no | {params.samtools} view -bS - | {params.samtools} sort -o {output.bam} -
 		{params.samtools} index {output.bam}
 		"""
 
@@ -68,17 +68,18 @@ output_files = []
 assembly_type = "regional_assembly"
 for tech in ["ONT", "PB-CCS", "PB-CLR"]:
 	for build in ["GRCh38"]:
-		for acronym in acronyms:
+		for acronym in ['IGH']:
 			if tech == "ONT":
-				methods = ["Flye", "Flye_Medaka", "Canu", "Canu_Medaka", "Wtdbg2", "Wtdbg2_Medaka"]
+				methods = ["Flye", "Flye_Medaka", "Canu", "Canu_Medaka", "Wtdbg2", "Wtdbg2_Medaka", "Canu_Purge"]
 			elif tech == "PB-CCS" or tech == "PB-CLR":
-				methods = ["Flye", "Canu", "Wtdbg2"]
+				methods = ["Flye", "Canu", "Wtdbg2", "Canu_Purge"]
 			for method in methods:
 				output_files.append(output_file.format(assembly_type = assembly_type, tech = tech, build = build, acronym = acronym, method = method))
 assembly_type = "whole_genome_assembly"
 for tech in ["ONT", "PB-CCS", "PB-CLR", "10X"]:
 	for build in ["GRCh38"]:
 		for acronym in acronyms:
+			break
 			if tech == "ONT":
 				methods = ["Wtdbg2"]
 			elif tech == "PB-CCS":

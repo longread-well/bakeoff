@@ -65,9 +65,11 @@ output_files = []
 for assembly_type in ['regional_assembly']:
     for tech in ['ONT', 'PB-CCS', 'PB-CLR']:
         if tech == "ONT":
-            methods = ["Flye", "Flye_Medaka", "Canu", "Canu_Medaka", "Wtdbg2", "Wtdbg2_Medaka"]
-        elif tech == "PB-CCS" or tech == "PB-CLR":
-            methods = ["Flye", "Canu", "Wtdbg2"]
+            methods = ["Flye", "Flye_Medaka", "Canu", "Canu_Medaka", "Wtdbg2", "Wtdbg2_Medaka", "Canu_Purge"]
+        elif tech == "PB-CCS":
+            methods = ["Flye", "Canu", "Wtdbg2", "Canu_Purge"]
+        elif tech == "PB-CLR":
+            methods = ["Flye", "Canu", "Wtdbg2", "Canu_Purge"]
 
         for build in ['GRCh38']:
             for acronym in acronyms:

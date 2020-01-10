@@ -132,6 +132,31 @@ rule Canu:
 		ln -s {output.consensus} {output.symlink}
 		"""
 
+rule Canunc:
+	input:
+		reads = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Raw_reads/raw_reads.fastq"
+
+	output:
+		consensus = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Canunc/canu.contigs.fasta",
+		symlink = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Canunc/Output.symlink.fasta"
+
+	params:
+		canu = tools['canu'],
+		output_folder = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Canunc/",
+		tech_flag = lambda wildcards: {"ONT": "nanopore-raw", "PB-CLR": "pacbio-raw", "PB-CCS": "pacbio-hifi"}[wildcards.tech],
+		length = lambda wildcards: get_region_definition(wildcards.acronym, wildcards.build, regions)["length"],
+
+	shell:
+		# -stopOnLowCoverage=1 was included to avoid Canu from raising an error
+		# useGrid is disabled for regional assembly
+		# corOutCoverage=200 "batOptions=-dg 3 -db 3 -dr 1 -ca 500 -cp 50" is added to avoid collapsing the genome. See https://canu.readthedocs.io/en/latest/faq.html#my-assembly-continuity-is-not-good-how-can-i-improve-it
+		"""
+		module load gcc/5.4.0
+		module load java/1.8.0_latest
+		{params.canu} -d {params.output_folder} -p canu genomeSize={params.length} 'useGrid=false' -{params.tech_flag} {input.reads} -stopOnLowCoverage=1 corOutCoverage=200 "batOptions=-dg 3 -db 3 -dr 1 -ca 500 -cp 50"
+		ln -s {output.consensus} {output.symlink}
+		"""
+
 rule Wtdbg2:
 	input:
 		reads = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Raw_reads/raw_reads.fastq"
@@ -145,7 +170,6 @@ rule Wtdbg2:
 		tech_flag = lambda wildcards: {"ONT": "ont", "PB-CLR": "sq", "PB-CCS": "ccs"}[wildcards.tech],
 		length = lambda wildcards: get_region_definition(wildcards.acronym, wildcards.build, regions)["length"],
 	shell:
-		# TODO: check wtdbg2 -x option (RSII or Squell for CLR?) See https://github.com/ruanjue/wtdbg2
 		"""
 		{params.wtdbg2}/wtdbg2 -x {params.tech_flag} -g {params.length} -t 4 -i {input.reads} -fo {params.output_prefix}
 		{params.wtdbg2}/wtpoa-cns -t 4 -i {params.output_prefix}.ctg.lay.gz -fo {params.output_prefix}.ctg.fa
@@ -175,6 +199,7 @@ rule Falcon:
 		rm {params.fofn}
 		"""
 rule SDA:
+	# TODO
 	input:
 		reads = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Raw_reads/raw_reads.fastq",
 		contigs = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/{method}/Output.symlink.fasta",
@@ -198,8 +223,10 @@ for tech in ["ONT", "PB-CCS", "PB-CLR"]:
 		for acronym in acronyms:
 			if tech == "ONT":
 				methods = ["Flye", "Flye_Medaka", "Canu", "Canu_Medaka", "Wtdbg2", "Wtdbg2_Medaka"]
-			elif tech == "PB-CCS" or tech == "PB-CLR":
+			elif tech == "PB-CCS":
 				methods = ["Flye", "Canu", "Wtdbg2"]
+			elif tech == "PB-CLR":
+				methods = ["Flye", "Canu", "Wtdbg2", "Canunc"]
 			for method in methods:
 				output_files.append(get_output_file(tech, build, acronym, method))
 

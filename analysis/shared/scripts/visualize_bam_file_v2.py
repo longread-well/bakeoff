@@ -213,6 +213,7 @@ class Contig:
         self.right = None
         self.NM = None
         self.NM_percentage = None
+        self.name = None
 
     def add_block(self, block):
         self.blocks.append(block)
@@ -224,7 +225,7 @@ class Contig:
 
     def draw(self, y0):
         # Determine contig color
-        color = cm.viridis(self.NM_percentage / 0.05) # Brighter colors denote higher NM%
+        color = hash_to_rgba(hash(self.name))
 
         # Draw contig spine
         spine_height = 0.05
@@ -353,7 +354,7 @@ class Read:
             insertion.draw(y0)
         for deletion in self.deletions:
             deletion.draw(y0)
-        
+
 
 
 
@@ -429,7 +430,39 @@ class Region():
         return output
 
 
+def hash_to_rgba(hash_value):
+    h = hash_value % 1000 / 1000 # Hue range: 0-1
+    s = hash_value % 1001 / 1001 * 0.2 + 0.65 # Saturation range: 0.65-0.85
+    l = hash_value % 999 / 999 * 0.4 + 0.3 # Lightness range: 0.3-0.7
+    a = 1
 
+    def hsl_to_rgb(h, s, l):
+        if s == 0:
+            r = g = b = l
+        else:
+            def hue_to_rgb(p, q, t):
+                if t < 0:
+                    t += 1
+                if t > 1:
+                    t -= 1
+                if t < 1/6:
+                    return p + (q - p) * 6 * t
+                if t < 1/2:
+                    return q
+                if t < 2/3:
+                    return p + (q - p) * (2/3 - t) * 6
+                return p
+
+            q = l * (1 + s) if l < 0.5 else l + s - l * s
+            p = 2 * l - q
+            r = hue_to_rgb(p, q, h + 1/3)
+            g = hue_to_rgb(p, q, h)
+            b = hue_to_rgb(p, q, h - 1/3)
+
+        return r, g, b
+
+    r, g, b = hsl_to_rgb(h, s, l)
+    return (r, g, b, a)
 
 def region_overlap(region1, region2):
     # Determine if two regions overlap with each other
@@ -551,6 +584,7 @@ def read_bam_file(bam_file, type, target_region, name = None):
         contig.NM = contig_data.get_tag('NM')
         contig.NM_percentage = contig.NM / contig.length
         contig.region = Region(chromosome, contig.left, contig.right)
+        contig.name = contig_data.query_name
 
 
 
