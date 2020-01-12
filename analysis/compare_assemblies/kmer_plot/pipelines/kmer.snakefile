@@ -69,7 +69,7 @@ for assembly_type in ['regional_assembly']:
         elif tech == "PB-CCS":
             methods = ["Flye", "Canu", "Wtdbg2", "Canu_Purge"]
         elif tech == "PB-CLR":
-            methods = ["Flye", "Canu", "Wtdbg2", "Canu_Purge"]
+            methods = ["Flye", "Canu", "Wtdbg2", "Canu_Purge", "Canunc", "Canunc_Purge"]
 
         for build in ['GRCh38']:
             for acronym in acronyms:

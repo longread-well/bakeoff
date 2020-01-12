@@ -225,7 +225,7 @@ class Contig:
 
     def draw(self, y0):
         # Determine contig color
-        color = hash_to_rgba(hash(self.name))
+        color = color_hash(self.name)
 
         # Draw contig spine
         spine_height = 0.05
@@ -397,8 +397,7 @@ class Gene:
         self.length = self.right - self.left + 1
         self.exons = [] # TODO
         self.protein_coding = None
-        np.random.seed(hash(self.name) % (2**32 - 1)) # Ensure each gene gets the same color every time it is drawn
-        self.color = np.random.rand(3,) * 0.8
+        self.color = color_hash(self.name)
 
     def draw(self, y0, x_min, x_max):
         # Draw rectangles
@@ -429,12 +428,16 @@ class Region():
         output = "Region {chromosome}:{left}-{right}".format(chromosome = self.chromosome, left = self.left, right = self.right)
         return output
 
-
-def hash_to_rgba(hash_value):
-    h = hash_value % 1000 / 1000 # Hue range: 0-1
-    s = hash_value % 1001 / 1001 * 0.2 + 0.65 # Saturation range: 0.65-0.85
-    l = hash_value % 999 / 999 * 0.4 + 0.3 # Lightness range: 0.3-0.7
-    a = 1
+def color_hash(string, alpha = 1):
+    '''
+    Assign a unique, random and nice-looking color (rgba format) to the input string.
+    '''
+    import hashlib
+    hash_value = int(hashlib.md5(string.encode('utf-8')).hexdigest()[:4], base = 36)
+    h = hash_value % 1009 / 1009 # Hue range: 0-1
+    s = hash_value % 1021 / 1021 * 0.2 + 0.65 # Saturation range: 0.65-0.85
+    l = hash_value % 1031 / 1031 * 0.4 + 0.3 # Lightness range: 0.3-0.7
+    a = alpha
 
     def hsl_to_rgb(h, s, l):
         if s == 0:

@@ -38,8 +38,8 @@ def ph_cov(l, m, h, output_path):
         ph = ph, output_path = output_path, l = l, m = m, h = h
     ))
 
-def ph_purge(contigs, output_path):
-    if os.system("source activate {ph} && cd {output_path} && purge_haplotigs  purge  -g {contigs} -c coverage_stats.csv".format(ph = ph, output_path = output_path, contigs = contigs)) == 0:
+def ph_purge(contigs, mapped_reads, output_path):
+    if os.system("source activate {ph} && cd {output_path} && purge_haplotigs  purge  -g {contigs} -c coverage_stats.csv -dotplot {mapped_reads}".format(ph = ph, output_path = output_path, contigs = contigs, mapped_reads = mapped_reads)) == 0:
         os.system("cd {output_path} && touch ph_purge.done && ln -s curated.fasta Output.symlink.fasta".format(output_path = output_path))
     else:
         # If no contigs flagged as either suspects or artefacts, purge_haplotigs will through an error. Here we mask that error and use input contigs as the output
@@ -71,7 +71,13 @@ acronyms = [region['acronym'] for region in regions]
 for tech in ['ONT', 'PB-CCS', 'PB-CLR']:
     for build in ['GRCh38']:
         for acronym in acronyms:
-            for method in ['Canu']:
+            if tech == "ONT":
+                methods = ['Canu']
+            elif tech == 'PB-CCS':
+                methods = ['Canu']
+            elif tech == 'PB-CLR':
+                methods = ['Canu', 'Canunc']
+            for method in methods:
                 print(tech + "/" + build + '/' + acronym + '/' + method)
                 reads = get_reads(tech, build, acronym)
                 contigs = get_contigs(tech, build, acronym, method)
@@ -94,5 +100,5 @@ for tech in ['ONT', 'PB-CCS', 'PB-CLR']:
                     ph_cov(l, m, h, output_path)
                     assert os.path.isfile(os.path.join(output_path, "ph_cov.done"))
                 if os.path.isfile(os.path.join(output_path, "ph_cov.done")) and not os.path.isfile(os.path.join(output_path, "ph_purge.done")):
-                    ph_purge(contigs, output_path)
+                    ph_purge(contigs, mapped_reads, output_path)
                     assert os.path.isfile(os.path.join(output_path, "ph_purge.done"))
