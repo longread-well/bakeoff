@@ -68,7 +68,7 @@ output_files = []
 assembly_type = "regional_assembly"
 for tech in ["ONT", "PB-CCS", "PB-CLR"]:
 	for build in ["GRCh38"]:
-		for acronym in ['TRB']:
+		for acronym in acronyms:
 			if tech == "ONT":
 				methods = ["Flye", "Flye_Medaka", "Canu", "Canu_Medaka", "Wtdbg2", "Wtdbg2_Medaka", "Canu_Purge"]
 			elif tech == "PB-CCS" or tech == "PB-CLR":

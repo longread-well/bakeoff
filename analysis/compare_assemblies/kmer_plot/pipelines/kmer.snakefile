@@ -10,7 +10,9 @@ output_file = ROOT + "/analysis/compare_assemblies/kmer_plot/data/{assembly_type
 rule Kmer_plot:
     input:
         ref = ROOT + "/analysis/shared/data/regions/sequence/{build}/{acronym}.fasta",
-        contigs = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/{method}/Output.symlink.fasta"
+        contigs = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/{method}/Output.symlink.fasta",
+        ref_coverage = ROOT + "/analysis/compare_assemblies/map_reads_to_reference/data/{tech}/{build}/{acronym}.tsv",
+        contigs_coverage = ROOT + "/analysis/compare_assemblies/map_reads_to_contigs/data/{tech}/{build}/{acronym}/{method}.tsv"
     output:
         png = output_file
     params:
@@ -22,7 +24,7 @@ rule Kmer_plot:
     shell:
         """
         set +u; source activate /well/longread/users/akl399/env/bakeoff; set -u
-        python {params.kmer_plot} -x {input.ref} -y {input.contigs} -k {params.k} -o {output.png} --xlabel {params.xlabel} --ylabel {params.ylabel} --title {params.title}
+        python {params.kmer_plot} -x {input.ref} -y {input.contigs} -k {params.k} -o {output.png} --x_coverage {input.ref_coverage} --y_coverage {input.contigs_coverage} --xlabel {params.xlabel} --ylabel {params.ylabel} --title {params.title}
         """
 
 rule Ref_self_plot:
@@ -65,7 +67,7 @@ output_files = []
 for assembly_type in ['regional_assembly']:
     for tech in ['ONT', 'PB-CCS', 'PB-CLR']:
         if tech == "ONT":
-            methods = ["Flye", "Flye_Medaka", "Canu", "Canu_Medaka", "Wtdbg2", "Wtdbg2_Medaka", "Canu_Purge"]
+            methods = ["Flye", "Flye_Medaka", "Canu", "Canu_Medaka", "Wtdbg2_Medaka", "Canu_Purge"]
         elif tech == "PB-CCS":
             methods = ["Flye", "Canu", "Wtdbg2", "Canu_Purge"]
         elif tech == "PB-CLR":

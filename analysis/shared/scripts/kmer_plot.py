@@ -51,13 +51,17 @@ def color_hash(string):
 
 def coverage_plot(ax, coverage_file, colors = None, bin_size = 10000, transpose = False, position_offset = 0):
     data = pd.read_csv(coverage_file, sep = '\t', header = None, names = ['sequence_name', 'position', 'coverage'])
+    data['sequence_name'] = data['sequence_name'].apply(lambda s: s.split(':')[0])
     sequence_names = set(data.sequence_name)
 
     max_coverage = 0
     for sequence_name in sequence_names:
         subset = data.loc[data["sequence_name"] == sequence_name, :]
+        if len(subset) < bin_size:
+            continue
         coverage = list(np.convolve(subset.coverage, np.ones((bin_size,))/bin_size, mode='same'))
         position = list(subset.position + position_offset - 1)
+        #print(len(coverage)); print(len(position)); print(sequence_name) # DEBUG
         max_coverage = max(np.max(coverage), max_coverage)
         color = colors[sequence_name] if colors else 'gray'
         plt.sca(ax)
@@ -80,9 +84,11 @@ def coverage_plot(ax, coverage_file, colors = None, bin_size = 10000, transpose 
 def read_fasta_metadata(fasta_file):
     metadata = {}
     for record in SeqIO.parse(fasta_file, "fasta"):
-        metadata[record.id] = dict(length = len(record.seq), offset = 0)
-        if record.id[:3] == 'chr' and ':' in record.id and "-" in record.id:
-            metadata[record.id]['offset'] = int(record.id.split(':')[1].split("-")[0])
+        sequence_name = record.id.split(":")[0]
+        metadata[sequence_name] = dict(length = len(record.seq), offset = 0)
+        if (record.id[:3] == 'chr' or record.id[0].isnumeric()) and ':' in record.id and "-" in record.id: # Check if record is part of a reference chromosome
+            metadata[sequence_name]['offset'] = int(float(record.id.split(':')[1].split("-")[0]))
+    print(metadata) # DEBUG
     return metadata
 
 if __name__ == "__main__":
@@ -124,6 +130,7 @@ if __name__ == "__main__":
 
     points = []
     colors = {contig_name: color_hash(contig_name) for contig_name in y_metadata.keys()}
+    print(colors) ## DEBUG
 
     check_chromosomes = lambda row: str(row['chromosome']).split(':')[0] == 'x' and str(row['other_chromosome']).split(':')[0] == 'y'
     points = [dict(x = row['position'], y = row['other_position'], contig_name = row['other_chromosome'].split(' ')[0].split(':')[1])

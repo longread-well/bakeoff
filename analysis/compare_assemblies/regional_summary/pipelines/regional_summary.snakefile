@@ -7,7 +7,7 @@ output_file = ROOT + "/analysis/compare_assemblies/visualize_bam_file/data/{tech
 
 def get_bam_input(tech, build, acronym, method):
     if tech in ["ONT", "PB-CCS", "PB-CLR"]:
-        bam_file = ROOT + "/analysis/compare_assemblies/align_contigs_to_ref/data/{tech}/{build}/{acronym}/{method}.bam".format(
+        bam_file = ROOT + "/analysis/compare_assemblies/align_contigs_to_ref/data/regional_assembly/{tech}/{build}/{acronym}/{method}.bam".format(
         tech = tech, build = build, acronym = acronym, method = method)
     if tech == "10X":
         bam_file = ROOT + "/analysis/compare_assemblies/extract_10X_contigs/data/{build}/10X_{acronym}.bam".format(
@@ -38,17 +38,21 @@ rule Group_bam_files:
 def get_summary_input():
     input_files = []
     template = ROOT + "/analysis/compare_assemblies/regional_summary/data/{build}/{acronym}/{tech} + {method}.bam"
-    for build in ['GRCh38']:
-        for acronym in acronyms:
-            for tech in ["ONT"]:
-                for method in ['Flye_Medaka', 'Canu_Medaka']:
+    for tech in ['ONT', 'PB-CCS', 'PB-CLR', '10X']:
+        for build in ['GRCh38']:
+            for acronym in acronyms:
+                if tech in ['ONT']:
+                    methods = ['Flye_Medaka', 'Canu_Medaka']
+                elif tech in ['PB-CCS', 'PB-CLR']:
+                    methods = ['Flye', 'Canu']
+                elif tech in ['10X']:
+                    methods = ['Supernova']
+
+                if tech == 'PB-CCS' and acronym in ['GYP', 'IL27']:
+                    methods = ['Flye', 'Canu', 'Canu_Purge']
+                for method in methods:
                     input_files.append(template.format(build = build, acronym = acronym, tech = tech, method = method))
-            for tech in ['PB-CCS', 'PB-CLR']:
-                for method in ['Flye', 'Canu']:
-                    input_files.append(template.format(build = build, acronym = acronym, tech = tech, method = method))
-            for tech in ['10X']:
-                for method in ['Supernova']:
-                    input_files.append(template.format(build = build, acronym = acronym, tech = tech, method = method))
+
     return input_files
 
 rule Summarize:
