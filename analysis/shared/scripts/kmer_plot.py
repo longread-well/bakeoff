@@ -104,8 +104,12 @@ if __name__ == "__main__":
     parser.add_argument('--xlabel', default = '', help = "X-axis label of k-mer plot")
     parser.add_argument('--ylabel', default = '', help = "Y-axis label of k-mer plot")
     parser.add_argument('--title', default = '', help = "Title of k-mer plot")
+    parser.add_argument('--figsize', default = '6,6', help = "Figure size (width, height) in inches")
+    parser.add_argument('--zoom', default = '', help = "Format: center_x,center_y,zoom_factor. If provided, the resulting k-mer plot will zoom in to centre at the selected position.")
+    parser.add_argument('--alpha', type = float, default = '0.05', help = "Transparency of scatter points.")
 
     args = parser.parse_args()
+    print(args)
 
     # Read sequence metadata
     x_metadata = read_fasta_metadata(args.x)
@@ -145,19 +149,38 @@ if __name__ == "__main__":
     C = [point['color'] for point in points_downsampled]
 
     print("Making k-mer plot (%s scatter points) ..." % len(points_downsampled))
-    fig, ax_grid = plt.subplots(2, 2, gridspec_kw={'width_ratios': [4, 1], "height_ratios": [1, 4]}, figsize = (6,6))
-    ax_grid[0,1].axis('off')
-    main_axes, top_axes, right_axes = ax_grid[1,0], ax_grid[0,0], ax_grid[1,1]
+    figsize = [int(s) for s in args.figsize.split(",")]
+    if args.x_coverage and args.y_coverage:
+        fig, ax_grid = plt.subplots(2, 2, gridspec_kw={'width_ratios': [4, 1], "height_ratios": [1, 4]}, figsize = figsize)
+        main_axes, top_axes, right_axes = ax_grid[1,0], ax_grid[0,0], ax_grid[1,1]
+        fig.delaxes(ax_grid[0,1])
+    elif args.x_coverage and not args.y_coverage:
+        fig, ax_grid = plt.subplots(2, 1, gridspec_kw={"height_ratios": [1, 4]}, figsize = figsize)
+        main_axes, top_axes = ax_grid[1, 0], ax_grid[0, 0]
+    elif args.y_coverage and not args.x_coverage:
+        fig, ax_grid = plt.subplots(1, 2, gridspec_kw={'width_ratios': [4, 1]}, figsize = figsize)
+        main_axes, right_axes = ax_grid[0, 0], ax_grid[0, 1]
+    else:
+        fig = plt.figure(figsize = figsize)
+        main_axes = plt.gca()
+
 
     main_axes.set_axisbelow(True)
     plt.sca(main_axes)
     plt.grid(color='whitesmoke', linestyle='-', linewidth=1)
-    plt.scatter(X, Y, s = 0.5, c = C, alpha = 0.05)
+    plt.scatter(X, Y, s = 0.5, c = C, alpha = args.alpha)
+
 
     x_min = min([contig['offset'] for contig in x_metadata.values()])
     x_max = max([contig['offset'] + contig['length'] for contig in x_metadata.values()])
     y_min = min([contig['offset'] for contig in y_metadata.values()])
     y_max = max([contig['offset'] + contig['length'] for contig in y_metadata.values()])
+
+    if args.zoom:
+        center_x, center_y, zoom_factor = [float(x) for x in args.zoom.split(",")]
+        delta_x, delta_y = (x_max - x_min) / zoom_factor, (y_max - y_min) / zoom_factor
+        x_min, x_max = center_x - delta_x, center_x + delta_x
+        y_min, y_max = center_y - delta_y, center_y + delta_y
 
     plt.xlim(x_min, x_max)
     plt.ylim(y_min, y_max)
@@ -176,16 +199,12 @@ if __name__ == "__main__":
         plt.sca(top_axes)
         plt.xticks([])
         plt.xlim(x_min, x_max)
-    else:
-        top_axes.axis('off')
     if args.y_coverage:
         print("Plotting read coverage on y axis ...")
         coverage_plot(right_axes, args.y_coverage, colors, transpose=True, position_offset = y_offset)
         plt.sca(right_axes)
         plt.yticks([])
         plt.ylim(y_min, y_max)
-    else:
-        right_axes.axis('off')
 
     fig.tight_layout()
     plt.savefig(args.o, dpi = 300)
