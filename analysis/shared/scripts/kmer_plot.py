@@ -100,13 +100,14 @@ if __name__ == "__main__":
     parser.add_argument('-o', default = "kmer_plot.png", help = "Output PNG file")
     parser.add_argument('--x_coverage', default = '', help = "Coverage file for x axis")
     parser.add_argument('--y_coverage', default = '', help = "Coverage file for y axis")
-    parser.add_argument('--downsample', type = float, default = 1, help = "Downsample factor of scatter points")
+    parser.add_argument('--downsample', type = float, default = 1, help = "If provided, scatter points will be downsampled before plotting to save time")
     parser.add_argument('--xlabel', default = '', help = "X-axis label of k-mer plot")
     parser.add_argument('--ylabel', default = '', help = "Y-axis label of k-mer plot")
     parser.add_argument('--title', default = '', help = "Title of k-mer plot")
     parser.add_argument('--figsize', default = '6,6', help = "Figure size (width, height) in inches")
     parser.add_argument('--zoom', default = '', help = "Format: center_x,center_y,zoom_factor. If provided, the resulting k-mer plot will zoom in to centre at the selected position.")
     parser.add_argument('--alpha', type = float, default = '0.05', help = "Transparency of scatter points.")
+    parser.add_argument('--debug', type = bool, default = False, help = "Keep temp files for debugging")
 
     args = parser.parse_args()
     print(args)
@@ -126,9 +127,17 @@ if __name__ == "__main__":
     os.system(selfmap_command)
 
     # Plot selfmap output
+
     print("Reading selfmap output ...")
-    data = pd.read_csv(selfmap_output, sep = "\t", header = 8)
-    if os.path.exists(selfmap_output):
+    with open(selfmap_output, 'r') as f: # Fix a suspected bug in selfmap
+        raw = f.read()
+    fixed = raw.replace('\nx:', '{lbx}').replace('\ny:', "{lby}").replace("\n", "").replace("{lbx}", "\nx:").replace('{lby}', "\ny:")
+    with open(selfmap_output, 'w') as f:
+        f.write(fixed)
+
+    names = ['alternate_ids', 'rsid', 'chromosome', 'position', 'alleleA', 'alleleB', 'orientation', 'other_chromosome', 'other_position', 'other_orientation']
+    data = pd.read_csv(selfmap_output, sep = '\t', skiprows = [0], names = names)
+    if os.path.exists(selfmap_output) and not args.debug:
         os.remove(selfmap_output)
         print("Temp file removed")
 

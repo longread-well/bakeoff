@@ -678,13 +678,15 @@ if __name__ == "__main__":
     parser.add_argument('-i', required = True, help = "Path containing bam files")
     parser.add_argument('-o', required = True, help = "Path to store output image and statictics")
     parser.add_argument('-r', required = True, help = "Genome region of interest; format: chr14:21170441-22134544")
+    parser.add_argument('--hide_genes', type = bool, default = False, help = "Whether to hide the gene annotation track")
     args = parser.parse_args()
     input_dir = args.i
     input_dir = os.path.join(input_dir, '') # add tailing "/" if missing
     output_dir = args.o
     output_dir = os.path.join(output_dir, '') # add tailing "/" if missing
     target_region = parse_region(args.r)
-    print("Input path: {i}\nOutput path: {o}\nTarget region: {r}".format(i = input_dir, o = output_dir, r = target_region))
+    print("Input path: {i}\nOutput path: {o}\nTarget region: {r}\nGene annotation: {g}".format(i = input_dir, o = output_dir, r = target_region, g = not args.hide_genes))
+    print(args)
 
     # Load assemblies
     bamfiles = [os.path.join(input_dir, f) for f in os.listdir(input_dir)
@@ -700,8 +702,9 @@ if __name__ == "__main__":
         canvas.add_track(track)
 
     # Load genes
-    gene_annotation_track = load_genes(GENE_ANNOTATION_FILE, target_region)
-    canvas.add_track(gene_annotation_track)
+    if not args.hide_genes:
+        gene_annotation_track = load_genes(GENE_ANNOTATION_FILE, target_region)
+        canvas.add_track(gene_annotation_track)
 
     # Visualize
     canvas.draw()

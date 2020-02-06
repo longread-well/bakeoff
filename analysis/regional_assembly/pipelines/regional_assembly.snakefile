@@ -27,19 +27,20 @@ def get_bam_file(tech, build):
 		raise Exception("Parameter error")
 
 def get_fastq_file(tech):
-	# TODO
 	if tech == "ONT":
 		return ROOT + "/resources/data/ONT/JK_HV31.ont.fastq"
 	elif tech == "PB-CCS":
 		return ROOT + "/resources/data/PB-CCS/JK_HV31.ccs.fastq"
 	elif tech == "PB-CLR":
 		return ROOT + "/resources/data/PB-CLR/JK_HV31.clr.fastq"
+	elif tech == "10X":
+		return "/well/longread/projects/wgs_10x/data/raw/11589MCpool01-N__JK_HV31_3/*.fastq.gz"
 	else:
 		raise Exception("Parameter error")
 
 wildcard_constraints:
-	build='GRCh3[7|8]',
-	acronym=r'\w+'
+	build = 'GRCh3[7|8]',
+	acronym = r'\w+'
 
 rule Extract_reads:
 	input:
@@ -85,7 +86,7 @@ rule Flye:
 	shell:
 		"""
 		{params.flye} --{params.tech_flag} {input.reads} -g {params.length} -o {params.output_folder} -t 4 --asm-coverage 40
-		ln -s {output.consensus} {output.symlink}
+		ln -rs {output.consensus} {output.symlink}
 		"""
 
 rule Medaka:
@@ -105,7 +106,7 @@ rule Medaka:
 		# set +u and set -u are necessary: see https://snakemake.readthedocs.io/en/stable/project_info/faq.html#my-shell-command-fails-with-with-errors-about-an-unbound-variable-what-s-wrong
 		set +u; source {params.medaka}; set -u
 		medaka_consensus -i {input.reads} -d {input.scaffold} -o {params.output_folder} -t 4 -m r941_prom_high
-		ln -s {output.assembly} {output.symlink}
+		ln -rs {output.assembly} {output.symlink}
 		"""
 
 rule Canu:
@@ -121,7 +122,8 @@ rule Canu:
 		output_folder = lambda wildcards: get_output_path(wildcards.tech, wildcards.build, wildcards.acronym, "Canu"),
 		tech_flag = lambda wildcards: {"ONT": "nanopore-raw", "PB-CLR": "pacbio-raw", "PB-CCS": "pacbio-hifi"}[wildcards.tech],
 		length = lambda wildcards: get_region_definition(wildcards.acronym, wildcards.build, regions)["length"],
-
+	wildcard_constraints:
+		tech = "(PB-CLR|PB-CCS|ONT)"
 	shell:
 		# -stopOnLowCoverage=1 was included to avoid Canu from raising an error
 		# useGrid is disabled for regional assembly
@@ -129,7 +131,7 @@ rule Canu:
 		module load gcc/5.4.0
 		module load java/1.8.0_latest
 		{params.canu} -d {params.output_folder} -p canu genomeSize={params.length} 'useGrid=false' -{params.tech_flag} {input.reads} -stopOnLowCoverage=1
-		ln -s {output.consensus} {output.symlink}
+		ln -rs {output.consensus} {output.symlink}
 		"""
 
 rule Canunc:
@@ -154,7 +156,28 @@ rule Canunc:
 		module load gcc/5.4.0
 		module load java/1.8.0_latest
 		{params.canu} -d {params.output_folder} -p canu genomeSize={params.length} 'useGrid=false' -{params.tech_flag} {input.reads} -stopOnLowCoverage=1 corOutCoverage=200 "batOptions=-dg 3 -db 3 -dr 1 -ca 500 -cp 50"
-		ln -s {output.consensus} {output.symlink}
+		ln -rs {output.consensus} {output.symlink}
+		"""
+
+rule CanuHybrid:
+	input:
+		reads_ont = ROOT + "/analysis/regional_assembly/data/ONT/{build}/{acronym}/Raw_reads/raw_reads.fastq",
+		reads_clr = ROOT + "/analysis/regional_assembly/data/PB-CLR/{build}/{acronym}/Raw_reads/raw_reads.fastq",
+	output:
+		consensus = ROOT + "/analysis/regional_assembly/data/CLR+ONT/{build}/{acronym}/Canu/canu.contigs.fasta",
+		symlink = ROOT + "/analysis/regional_assembly/data/CLR+ONT/{build}/{acronym}/Canu/Output.symlink.fasta"
+	params:
+		canu = tools['canu'],
+		output_folder = lambda wildcards: get_output_path("CLR+ONT", wildcards.build, wildcards.acronym, "Canu"),
+		length = lambda wildcards: get_region_definition(wildcards.acronym, wildcards.build, regions)["length"],
+	shell:
+		# -stopOnLowCoverage=1 was included to avoid Canu from raising an error
+		# useGrid is disabled for regional assembly
+		"""
+		module load gcc/5.4.0
+		module load java/1.8.0_latest
+		{params.canu} -d {params.output_folder} -p canu genomeSize={params.length} 'useGrid=false' -pacbio-raw {input.reads_clr} -nanopore-raw {input.reads_ont} -stopOnLowCoverage=1
+		ln -rs {output.consensus} {output.symlink}
 		"""
 
 rule Wtdbg2:
@@ -174,30 +197,41 @@ rule Wtdbg2:
 		{params.wtdbg2}/wtdbg2 -x {params.tech_flag} -g {params.length} -t 4 -i {input.reads} -fo {params.output_prefix}
 		{params.wtdbg2}/wtpoa-cns -t 4 -i {params.output_prefix}.ctg.lay.gz -fo {params.output_prefix}.ctg.fa
 
-		ln -s {output.consensus} {output.symlink}
+		ln -rs {output.consensus} {output.symlink}
 		"""
 
 rule Falcon:
 	# TODO
 	input:
-		reads = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Raw_reads/raw_reads.fastq"
+		reads = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Raw_reads/raw_reads.fastq",
+		cfg_template = os.path.join(ROOT, "analysis/regional_assembly/resources/falcon_{tech}.cfg"),
 	output:
-		symlink = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Falcon/Output.symlink.fasta"
+		fofn = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Falcon/subreads.fasta.fofn",
+		cfg = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Falcon/fc_run.cfg",
+		symlink = ROOT + "/analysis/regional_assembly/data/{tech}/{build}/{acronym}/Falcon/Output.symlink.fasta",
 	params:
-		fofn = ROOT + "/analysis/regional_assembly/resources/falcon_input_fasta.fofn",
-		cfg = ROOT + "/analysis/regional_assembly/resources/falcon_{tech}.cfg",
 		output_folder = lambda wildcards: get_output_path(wildcards.tech, wildcards.build, wildcards.acronym, "Falcon"),
-	shell:
-		"""
-		touch {params.fofn}
-		echo {input.reads} >> {params.fofn}
-		source activate pb-assembly
-		rm -rf {params.output_folder}
-		mkdir {params.output_folder}
-		cd {params.output_folder}
-		fc_run {params.cfg}
-		rm {params.fofn}
-		"""
+		length = lambda wildcards: get_region_definition(wildcards.acronym, wildcards.build, regions)["length"],
+		falcon_env = "/well/longread/users/akl399/bin/falcon_env",
+	run:
+		import shutil
+		if os.path.exists(params.output_folder) and os.path.isdir(params.output_folder):
+			shutil.rmtree(params.output_folder)
+		os.mkdir(params.output_folder)
+		with open(output.fofn, 'w') as f:
+			f.write(input.reads)
+		with open(input.cfg_template, 'r') as f:
+			template = f.read()
+		cfg_file = template.replace("{fofn}", output.fofn).replace("{genome_size}", params.length)
+		with open(output.cfg, 'w') as f:
+			f.write(cfg_file)
+
+		falcon_dir = os.path.join(params.output_folder, 'falcon')
+		os.mkdir(falcon_dir)
+		os.system("set +u; source activate {falcon}; set -u; cd {output_folder} && fc_run {cfg}".format(
+		falcon = params.falcon_env, output_folder = falcon_dir, cfg = output.cfg
+		))
+
 rule SDA:
 	# TODO
 	input:
@@ -218,15 +252,17 @@ rule SDA:
 		"""
 
 output_files = []
-for tech in ["ONT", "PB-CCS", "PB-CLR"]:
+for tech in ["ONT", "PB-CCS", "PB-CLR", "CLR+ONT"]:
 	for build in ["GRCh38"]:
 		for acronym in acronyms:
 			if tech == "ONT":
 				methods = ["Flye", "Flye_Medaka", "Canu", "Canu_Medaka", "Wtdbg2", "Wtdbg2_Medaka"]
 			elif tech == "PB-CCS":
-				methods = ["Flye", "Canu", "Wtdbg2"]
+				methods = ["Flye", "Canu", "Wtdbg2", "Falcon"]
 			elif tech == "PB-CLR":
 				methods = ["Flye", "Canu", "Wtdbg2", "Canunc"]
+			elif tech == "CLR+ONT":
+				methods = ['Canu']
 			for method in methods:
 				output_files.append(get_output_file(tech, build, acronym, method))
 

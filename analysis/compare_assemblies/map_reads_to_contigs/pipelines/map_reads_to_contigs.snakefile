@@ -25,7 +25,7 @@ rule Map_reads_to_contigs:
 		"""
 
 output_files = []
-for tech in ["ONT", "PB-CCS", "PB-CLR"]:
+for tech in ["ONT", "PB-CCS", "PB-CLR", 'CLR+ONT']:
 	for build in ["GRCh38"]:
 		for acronym in acronyms:
 			if tech == "ONT":
@@ -34,6 +34,8 @@ for tech in ["ONT", "PB-CCS", "PB-CLR"]:
 				methods = ["Flye", "Canu", "Wtdbg2", "Canu_Purge"]
 			elif tech == "PB-CLR":
 				methods = ["Flye", "Canu", "Wtdbg2", "Canunc", "Canu_Purge"]
+			elif tech == 'CLR+ONT':
+				methods = ['Canu'] # TODO
 			for method in methods:
 				output_files.append(get_output_file(tech, build, acronym, method))
 

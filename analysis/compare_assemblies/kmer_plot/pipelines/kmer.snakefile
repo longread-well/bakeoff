@@ -65,13 +65,15 @@ rule GRCh37_vs_GRCh38:
 
 output_files = []
 for assembly_type in ['regional_assembly']:
-    for tech in ['ONT', 'PB-CCS', 'PB-CLR']:
+    for tech in ['ONT', 'PB-CCS', 'PB-CLR', 'CLR+ONT']:
         if tech == "ONT":
             methods = ["Flye", "Flye_Medaka", "Canu", "Canu_Medaka", "Wtdbg2_Medaka", "Canu_Purge"]
         elif tech == "PB-CCS":
             methods = ["Flye", "Canu", "Wtdbg2", "Canu_Purge"]
         elif tech == "PB-CLR":
             methods = ["Flye", "Canu", "Wtdbg2", "Canu_Purge", "Canunc", "Canunc_Purge"]
+        elif tech == 'CLR+ONT':
+            methods = ['Canu']
 
         for build in ['GRCh38']:
             for acronym in acronyms:
