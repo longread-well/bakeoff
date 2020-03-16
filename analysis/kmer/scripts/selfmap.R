@@ -1,9 +1,7 @@
 library( argparse )
 library( RSQLite )
-RESOURCEDIR=Sys.getenv( "MG_RESOURCEDIR" )
-ANALYSISDIR=Sys.getenv( "MG_ANALYSISDIR" )
+library( bakeoff )
 PROJECTDIR=Sys.getenv( "MG_PROJECTDIR" )
-source( sprintf( "%s/library/R/scripts/shared_functions.R", RESOURCEDIR ))
 
 #############################
 # Declare options
@@ -136,6 +134,10 @@ genes = list(
 	second = load.genes( opts$genes2 )
 )
 
+fix_chromosome <- function( chromosome ) {
+	return( gsub( "^chr", "", chromosome ))
+}
+
 run.selfmap <- function( sequence1, sequence2, k, chromosome1, chromosome2 ) {
 	output = tempfile()
 	cmd = sprintf( 'selfmap_v2.1-dev -sequence %s=%s %s=%s -kmer-size %d -o %s',
@@ -266,11 +268,11 @@ for( i in 1:1 ) {
 	# genes
 	{
 		par( mar = c( 2, 2, 0, 1 ), xaxt = 's', bty = 'o' )
-		plot.genes( chromosomes[1], c( range1$start, range1$end ), genes[[1]], height_in_inches = 2 )
+		plot.ucsc.genes( genes[[1]], range1, height_in_inches = 2 )
 		myGrid( horiz = FALSE, main.col = "grey10", sub.col = "grey80" )
 
 		par( mar = c( 2, 0, 2, 2 ), xaxt = 'n', yaxt = 'n', bty = 'o' )
-		plot.genes( chromosomes[2], c( range2$start, range2$end ), genes[[2]], height_in_inches = 2, vertical = T )
+		plot.ucsc.genes( genes[[2]], range2, height_in_inches = 2, vertical = T )
 		axis( side = 4 )
 		myGrid( vert = FALSE, main.col = "grey10", sub.col = "grey80" )
 	}
