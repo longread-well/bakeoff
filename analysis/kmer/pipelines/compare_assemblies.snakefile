@@ -1,7 +1,7 @@
 import csv, os
 ROOT = os.environ[ 'BAKEOFF_ROOT' ]
 
-def loadRegions( filename = '../resources/regions.tsv' ):
+def loadRegions( filename = '%s/shared/analysis/bakeoff-scripts/resources/regions.tsv' % ROOT ):
 	regions = []
 	with open( filename, newline = '' ) as file:
 		regionReader = csv.DictReader( file, delimiter = '\t' )
