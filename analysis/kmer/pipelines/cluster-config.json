@@ -1,9 +1,16 @@
 {
         "__default__": {
-                "cores": "6",
+                "cores": "1",
 		"queue": "short.qc",
                 "logdir": "logs",
 		"project": "kwiatkowski.prjc"
+        },
+	"computeHistogram": {
+		"cores": 2
+	},
+        "countKmers": {
+                "cores": "10",
+		"queue": "short.qc"
         }
 }
 
