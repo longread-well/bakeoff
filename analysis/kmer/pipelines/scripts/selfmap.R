@@ -2,6 +2,7 @@ library( argparse )
 library( RSQLite )
 library( bakeoff )
 PROJECTDIR=Sys.getenv( "MG_PROJECTDIR" )
+options( width = 300 )
 
 #############################
 # Declare options
@@ -104,8 +105,6 @@ load.genes = function( filename, condense = TRUE, protein.coding.only = TRUE ) {
 	}
 	
 	chromosome =  gsub( "^chr", "", gene$chrom )
-	w1 = which( nchar( chromosome ) == 1 )
-	chromosome[ w1 ] = sprintf( "0%s", chromosome[w1] )
 	gene$chromosome = chromosome
 	return( gene ) ;
 }
@@ -159,20 +158,24 @@ run.selfmap <- function( sequence1, sequence2, k, fix_chromosome = identity) {
 	X$chromosome1 = fix_chromosome( X$chromosome1 )
 	X$chromosome2 = fix_chromosome( X$chromosome2 )
 	cat( "...ok, read:\n" )
-	print( head( X ))
 	return(X)
 }
 cat( "Computing shared k-mers...\n" )
-X1 = run.selfmap( sequence1, sequence2, opts$k, fix_chromosome )
-X2 = run.selfmap( sequence1, sequence2, opts$k / 2, fix_chromosome )
+X1 = run.selfmap( sequence1, sequence2, opts$k, fix_chromosome = function(x) { opts$chromosome1 }  )
+X2 = run.selfmap( sequence1, sequence2, opts$k / 2, fix_chromosome = function(x) { opts$chromosome2 }  )
+
+cat( "X1:\n" )
+print( head( X1 ))
+cat( "X2:\n" )
+print( head( X2 ))
 
 if( !is.null( opts$range1 )) {
 	range1 = parse_ranges( opts$range1 )
 } else {
 	range1 = data.frame(
 		chromosome = opts$chromosome1,
-		start = min( c( X1$position )),
-		end = max( c( X1$position ) + opts$k )
+		start = min( c( X1$position1, X2$position1 )),
+		end = max( c( X1$position1, X2$position1 ) + opts$k )
 	)
 }
 
@@ -181,8 +184,8 @@ if( !is.null( opts$range2 )) {
 } else {
 	range2 = data.frame(
 		chromosome = opts$chromosome1,
-		start = min( c( X1$other_position )),
-		end = max( c( X1$other_position ) + opts$k )
+		start = min( c( X1$position2, X2$position2 )),
+		end = max( c( X1$position2, X2$position2 ) + opts$k )
 	)
 }
 
@@ -202,14 +205,18 @@ myGrid <- function( main.divisions = 1, sub.divisions = 4,	main.col = "grey40", 
 #############################
 # Plot
 
-
 X1$col = 'black'
-X1$col[ which( X1$other_orientation == '-' )] = 'red'
+X1$col[ which( X1$orientation1 != X1$orientation2 )] = 'red'
 X1$pch = '.'
 
 X2$col = 'grey'
-X2$col[ which( X2$other_orientation == '-' )] = 'indianred2'
+X2$col[ which( X2$orientation1 != X2$orientation2 )] = 'indianred2'
+X2$pch = '.'
 
+cat( "X1:\n" )
+print( head( X1 ))
+cat( "X2:\n" )
+print( head( X2 ))
 
 for( i in 1:1 ) {
 	chromosomes = c(
@@ -221,17 +228,18 @@ for( i in 1:1 ) {
 		sprintf( "%s: %s:%d-%d", sequence2['name'], chromosomes[2], range2$start[i], range2$end[i] )
 	)
 
+	# Order points so we plot smaller k sizes first
 	data = list(
 		X2[
 			which(
-				X2$chromosome == chromosomes[1] & X2$position >= range1$start[1] & X2$position <= range1$end[i]
-				& X2$chromosome2 == chromosomes[2] & X2$other_position >= range2$start[i] & X2$other_position <= range2$end[i]
+				X2$chromosome1 == chromosomes[1] & X2$position1 >= range1$start[1] & X2$position1 <= range1$end[i]
+				& X2$chromosome2 == chromosomes[2] & X2$position2 >= range2$start[i] & X2$position2 <= range2$end[i]
 			),
 		],
 		X1[
 			which(
-				X1$chromosome == chromosomes[1] & X1$position >= range1$start[1] & X1$position <= range1$end[i]
-				& X1$chromosome2 == chromosomes[2] & X1$other_position >= range2$start[i] & X1$other_position <= range2$end[i]
+				X1$chromosome1 == chromosomes[1] & X1$position1 >= range1$start[1] & X1$position1 <= range1$end[i]
+				& X1$chromosome2 == chromosomes[2] & X1$position2 >= range2$start[i] & X1$position2 <= range2$end[i]
 			),
 		]
 	)
@@ -242,8 +250,6 @@ for( i in 1:1 ) {
 	par( mar = c( 2, 2, 2, 1 ))
 
 	# Dot plot
-
-	# Upper dot plot
 	plot(
 		0, 0, col = 'white', 
 		xlab = region_names[1],
@@ -253,8 +259,9 @@ for( i in 1:1 ) {
 		ylim = c( range2$start, range2$end )
 	)
 	for( j in 1:length( data )) {
+		print( head( data[[j]] ))
 		points(
-			data[[j]]$position, data[[j]]$other_position,
+			data[[j]]$position1, data[[j]]$position2,
 			pch = '.', col = data[[j]]$col
 		)
 	}
@@ -263,9 +270,6 @@ for( i in 1:1 ) {
 	axis( side = 2 )
 	axis( side = 1 )
 	
-	# Lower dot plot
-	#points( XL$other_position, XL$position, pch = '.', col = XL$col )
-
 	# grid
 	#abline( a = 0, b = 1, col = "grey" )
 	myGrid( main.col = "grey10", sub.col = "grey50" )
