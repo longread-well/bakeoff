@@ -138,7 +138,10 @@ fix_chromosome <- function( chromosome ) {
 	return( gsub( "^chr", "", chromosome ))
 }
 
-run.selfmap <- function( sequence1, sequence2, k, chromosome1, chromosome2 ) {
+
+identity <- function( x ) { x }
+
+run.selfmap <- function( sequence1, sequence2, k, fix_chromosome = identity) {
 	output = tempfile()
 	cmd = sprintf( 'selfmap_v2.1-dev -sequence %s=%s %s=%s -kmer-size %d -o %s',
 		sequence1['name'], sequence1['filename'],
@@ -147,18 +150,21 @@ run.selfmap <- function( sequence1, sequence2, k, chromosome1, chromosome2 ) {
 	cat( "Running \"", cmd, "\"...\n", sep = '' )
 	system( cmd )
 	cat( "Loading \"", output, "\"...\n", sep = '' )
-	X = read.table( output, hea=T, as.is=T )
-	X = X[ grep( sprintf( "^%s:", sequence1['name'] ), X$chromosome ), ]
-	X = X[ grep( sprintf( "^%s:", sequence2['name'] ), X$other_chromosome ), ]
-	X$chromosome = chromosome1
-	X$other_chromosome = chromosome2
+
+	library( RSQLite )
+	db = dbConnect( dbDriver( "SQLite" ), output )
+	X = dbGetQuery( db, "SELECT * FROM Overlap" )
+	X = X[ grep( sprintf( "^%s:", sequence1['name'] ), X$chromosome1 ), ]
+	X = X[ grep( sprintf( "^%s:", sequence2['name'] ), X$chromosome2 ), ]
+	X$chromosome1 = fix_chromosome( X$chromosome1 )
+	X$chromosome2 = fix_chromosome( X$chromosome2 )
 	cat( "...ok, read:\n" )
 	print( head( X ))
 	return(X)
 }
 cat( "Computing shared k-mers...\n" )
-X1 = run.selfmap( sequence1, sequence2, opts$k, fix_chromosome( opts$chromosome1 ), fix_chromosome( opts$chromosome2 ))
-X2 = run.selfmap( sequence1, sequence2, opts$k / 2, fix_chromosome( opts$chromosome1 ), fix_chromosome( opts$chromosome2 ))
+X1 = run.selfmap( sequence1, sequence2, opts$k, fix_chromosome )
+X2 = run.selfmap( sequence1, sequence2, opts$k / 2, fix_chromosome )
 
 if( !is.null( opts$range1 )) {
 	range1 = parse_ranges( opts$range1 )
@@ -219,13 +225,13 @@ for( i in 1:1 ) {
 		X2[
 			which(
 				X2$chromosome == chromosomes[1] & X2$position >= range1$start[1] & X2$position <= range1$end[i]
-				& X2$other_chromosome == chromosomes[2] & X2$other_position >= range2$start[i] & X2$other_position <= range2$end[i]
+				& X2$chromosome2 == chromosomes[2] & X2$other_position >= range2$start[i] & X2$other_position <= range2$end[i]
 			),
 		],
 		X1[
 			which(
 				X1$chromosome == chromosomes[1] & X1$position >= range1$start[1] & X1$position <= range1$end[i]
-				& X1$other_chromosome == chromosomes[2] & X1$other_position >= range2$start[i] & X1$other_position <= range2$end[i]
+				& X1$chromosome2 == chromosomes[2] & X1$other_position >= range2$start[i] & X1$other_position <= range2$end[i]
 			),
 		]
 	)

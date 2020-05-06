@@ -22,7 +22,7 @@ tools = {
 	'clustalo': '/apps/well/clustal-omega/1.2.1/bin/clustalo',
 	'mummer': '/apps/well/mummer/3.23-2-gcc4.7.2',
 	'selfmap': '/users/kwiatkowski/gav/Projects/Software/usr/bin/selfmap_v2.1-dev',
-	'selfmap.R': '%s/shared/analysis/bakeoff-scripts/analysis/kmer/scripts/selfmap.R' % ROOT,
+	'selfmap.R': '%s/shared/analysis/bakeoff-scripts/analysis/kmer/pipelines/scripts/selfmap.R' % ROOT,
 	'Rscript': '/apps/well/R/3.4.3-openblas-0.2.18-omp-gcc5.4.0/bin/Rscript'
 }
 

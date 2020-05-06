@@ -86,7 +86,7 @@ rule all:
 		for k in ks
 		for bq in list( minBaseQualityChars.keys() ) + [ 'any' ]
 	] + [
-		"{dir}/{platform}/{platform}.k={k}.bq={bq}.solid_kmer_superset.txt.gz".format(
+		"{dir}/{platform}/{platform}.k={k}.bq={bq}.solid_kmer_superset_mhap.txt.gz".format(
 			dir = outDir, platform = platform, k = k, bq = bq
 		)
 		for platform in [ "PB-CCS+MGI", "PB-CCS+10X+MGI" ]
@@ -142,4 +142,13 @@ rule extractKmers:
 	shell: """
 		jellyfish dump -c --lower-count {params.lower} --upper-count {params.upper} -o {params.output} {input}
 		gzip {params.output}
+	"""
+
+rule extractKmersForMhap:
+	input:
+		"%s/{platform}/{platform}.k={k}.bq={bq}.solid_kmer_superset.txt.gz" % outDir
+	output:
+		"%s/{platform}/{platform}.k={k}.bq={bq}.solid_kmer_superset_mhap.txt.gz" % outDir
+	shell: """
+		./pipelines.symlink/scripts/make_mhap_kmer_file {input} | gzip -c > {output}
 	"""
