@@ -45,7 +45,7 @@ int main( int argc, char** argv ) {
 	std::cerr << "Read " << count << " kmers with total coverage " << (double(total)/count) << "...\n" ;
 
 	std::cerr << "Pass 2...\n" ;
-	std::cout << count << "\n" ;
+	std::cout << count << "\t" << 1024 << "\n" ;
 	{
 		std::ifstream file( argv[1], std::ios_base::in | std::ios_base::binary );
 		boost::iostreams::filtering_streambuf<boost::iostreams::input> in;

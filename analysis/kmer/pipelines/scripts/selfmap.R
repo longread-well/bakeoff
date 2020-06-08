@@ -166,8 +166,10 @@ X2 = run.selfmap( sequence1, sequence2, opts$k / 2, fix_chromosome = function(x)
 
 cat( "X1:\n" )
 print( head( X1 ))
+print( str( X1 ))
 cat( "X2:\n" )
 print( head( X2 ))
+print( str( X2 ))
 
 if( !is.null( opts$range1 )) {
 	range1 = parse_ranges( opts$range1 )

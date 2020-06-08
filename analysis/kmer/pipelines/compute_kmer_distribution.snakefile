@@ -29,7 +29,7 @@ print( files )
 # kmer sizes:
 # Flye uses 15 in standard mode, 17 in CCS mode and 31 in contig assembly mode
 # Jia-Yuan used 18 in his histograms
-ks = [ 16, 17, 18, 22, 23, 31 ]
+ks = [ 14, 16, 17, 18, 22, 23, 31 ]
 
 # We ignore bases with lower quality than this:
 # NB. Illumina base qualities are binned, the values are 
@@ -58,7 +58,13 @@ solidKmerThresholds = {
 	'PB-CCS+MGI.k=18.bq=20': [ 6, math.floor( 52*1.5 ) ],
 	'PB-CCS+MGI.k=22.bq=20': [ 5, math.floor( 49*1.5 ) ],
 	'PB-CCS+MGI.k=23.bq=20': [ 5, math.floor( 48*1.5 ) ],
-	'PB-CCS+MGI.k=31.bq=20': [ 4, math.floor( 42*1.5 ) ]
+	'PB-CCS+MGI.k=31.bq=20': [ 4, math.floor( 42*1.5 ) ],
+	'10X+MGI.k=16.bq=20': [ 19, math.floor( 68*1.5 ) ],
+	'10X+MGI.k=17.bq=20': [ 17, math.floor( 67*1.5 ) ],
+	'10X+MGI.k=18.bq=20': [ 16, math.floor( 66*1.5 ) ],
+	'10X+MGI.k=22.bq=20': [ 14, math.floor( 61*1.5 ) ],
+	'10X+MGI.k=23.bq=20': [ 13, math.floor( 60*1.5 ) ],
+	'10X+MGI.k=31.bq=20': [ 11, math.floor( 52*1.5 ) ]
 } ;
 
 def makeMinQualOption( bq ):
@@ -86,10 +92,24 @@ rule all:
 		for k in ks
 		for bq in list( minBaseQualityChars.keys() ) + [ 'any' ]
 	] + [
+		"{dir}/{platform}/{platform}.k={k}.bq={bq}.solid_kmer_superset.txt.gz".format(
+			dir = outDir, platform = platform, k = k, bq = bq
+		)
+		for platform in [ "10X+MGI", "PB-CCS+MGI", "PB-CCS+10X+MGI" ]
+		for k in ks
+		for bq in [ '20' ]
+	] + [
+		"{dir}/{platform}/{platform}.k={k}.bq={bq}.solid_and_high_copy_kmer_superset.txt.gz".format(
+			dir = outDir, platform = platform, k = k, bq = bq
+		)
+		for platform in [ "10X+MGI", "PB-CCS+MGI", "PB-CCS+10X+MGI" ]
+		for k in ks
+		for bq in [ '20' ]
+	] + [
 		"{dir}/{platform}/{platform}.k={k}.bq={bq}.solid_kmer_superset_mhap.txt.gz".format(
 			dir = outDir, platform = platform, k = k, bq = bq
 		)
-		for platform in [ "PB-CCS+MGI", "PB-CCS+10X+MGI" ]
+		for platform in [ "10X+MGI", "PB-CCS+MGI", "PB-CCS+10X+MGI" ]
 		for k in ks
 		for bq in [ '20' ]
 	]
@@ -130,7 +150,7 @@ rule plotHistogram:
 		/apps/well/R/3.4.3-openblas-0.2.18-omp-gcc5.4.0/bin/Rscript --vanilla {params.script} {input} {output} {wildcards.platform} {wildcards.k} {wildcards.bq}
 	"""
 
-rule extractKmers:
+rule extractSolidKmers:
 	input:
 		"%s/{platform}/{platform}.k={k}.bq={bq}.jf" % outDir
 	output:
@@ -141,6 +161,19 @@ rule extractKmers:
 		output = "%s/{platform}/{platform}.k={k}.bq={bq}.solid_kmer_superset.txt" % outDir
 	shell: """
 		jellyfish dump -c --lower-count {params.lower} --upper-count {params.upper} -o {params.output} {input}
+		gzip {params.output}
+	"""
+
+rule extractSolidAndHighCopyKmers:
+	input:
+		"%s/{platform}/{platform}.k={k}.bq={bq}.jf" % outDir
+	output:
+		"%s/{platform}/{platform}.k={k}.bq={bq}.solid_and_high_copy_kmer_superset.txt.gz" % outDir
+	params:
+		lower = lambda w: solidKmerThresholds["%s.k=%s.bq=%s" % (w.platform, w.k, w.bq) ][0],
+		output = "%s/{platform}/{platform}.k={k}.bq={bq}.solid_and_high_copy_kmer_superset.txt" % outDir
+	shell: """
+		jellyfish dump -c --lower-count {params.lower} -o {params.output} {input}
 		gzip {params.output}
 	"""
 
