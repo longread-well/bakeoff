@@ -4,6 +4,9 @@
 		"queue": "short.qc",
                 "logdir": "logs",
 		"project": "kwiatkowski.prjc"
-        }
+        },
+	"correct": {
+		"cores": "4"
+	}
 }
 
