@@ -1,0 +1,21 @@
+{
+        "__default__": {
+                "cores": "1",
+		"queue": "short.qc",
+                "logdir": "logs",
+		"project": "kwiatkowski.prjc"
+        },
+	"count_stitched_assembly_kmers": {
+		"cores": "4"
+	},
+	"count_platform_multiplicity": {
+		"cores": "6"
+	},
+	"compute_whole_genome_assembly_multiplicity": {
+		"cores": "2"
+	},
+	"mask_repeats": {
+		"cores": "2"
+	}
+}
+
