@@ -77,7 +77,7 @@ int main( int argc, char** argv ) {
 	std::cerr << "Read " << count << " kmers with total coverage " << (double(total)/count) << "...\n" ;
 
 	std::cerr << "Pass 2...\n" ;
-	std::cout << count << "\t" << 1024 << "\n" ;
+	std::cout << count << "\t" << count << "\n" ;
 	{
 		std::vector< char > reverse_complement_table = makeReverseComplementTable() ;
 		std::ifstream file( argv[1], std::ios_base::in | std::ios_base::binary );
@@ -99,10 +99,7 @@ int main( int argc, char** argv ) {
 			std::string kmer = line.substr( 0, where ) ;
 			std::string kmerCount = line.substr( where + 1, line.size() ) ;
 			std::cout << kmer << "\t" << std::fixed << std::setprecision(8) << double( std::stol( kmerCount ) ) / total  << "\n" ;
-			std::cerr << "kmer before: " << kmer << ".\n" ;
 			reverse_complement( kmer, reverse_complement_table ) ;
-			std::cerr << "kmer  after: " << kmer << ".\n" ;
-	
 			std::cout << kmer << "\t" << std::fixed << std::setprecision(8) << double( std::stol( kmerCount ) ) / total  << "\n" ;
 			++outputCount ;
 			if( outputCount % 10000000 == 0 ) {
