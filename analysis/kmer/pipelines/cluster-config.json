@@ -11,6 +11,10 @@
         "countKmers": {
                 "cores": "10",
 		"queue": "short.qc"
+        },
+        "countMergedKmers": {
+                "cores": "10",
+		"queue": "short.qc"
         }
 }
 
