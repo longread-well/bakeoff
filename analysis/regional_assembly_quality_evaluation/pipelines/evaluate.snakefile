@@ -13,11 +13,15 @@ regions = [
 	"GYP", "HLA", "IGH", "IGK", "IGL", "KIR", "TRA", "TRB", "TRG"
 ]
 
+# We make a version of the validation plot
+# for different sets of short read data
 validationPlatforms = [
 	'PB-CCS+10X+MGI',
 	'PB-CCS+10X+MGI+illumina_pcr_free+stLFR+CoolMPS'
 ]
 
+# Expected diploid (kmer) coverage is hard-coded for now
+# (I got these values from the Jellyfish kmer distribution plots)
 expectedDiploidCoverage = {
 	'PB-CCS+10X+MGI': {
 		'k=22.bq=20': 71.0,
@@ -29,12 +33,15 @@ expectedDiploidCoverage = {
 	}
 }
 
+# Work with these kmer sizes.  Relevant Jellyfish .jf files must already have been
+# computed in the path given below
 ks = [ '22', '31' ]
 
+# Locations of data files.
 data = {
 	"whole genome assembly": "%s/users/akl399/bakeoff/resources/data/whole_genome_assembly/CCS/canu19/canu.contigs.fasta" % ROOT,
 	"unscaffolded contigs": "%s/users/akl399/bakeoff/analysis/@bam_extract/@wga_contigs/CCS/canu19/data/{region}/contigs.fasta" % ROOT,
-	"finalised assemblies": "%s/users/akl399/bakeoff/priority.symlink/data/{region}/assembly.symlink.fasta" % ROOT,
+	"regional assemblies": "%s/users/akl399/bakeoff/priority.symlink/data/{region}/assembly.symlink.fasta" % ROOT,
 	"kmer counts": "%s/shared/analysis/kmer/distribution/{platform}/{platform}.k={k}.bq={bq}.jf" % ROOT
 }
 
@@ -47,11 +54,16 @@ rule all:
 		plots = [ "results/images/{region}.{platform}.k={k}.bq={bq}.png".format( region = r, platform = p, k = k, bq = '20' ) for r in regions for p in validationPlatforms for k in ks ],
 		repeatmasker = [ "results/{region}/repeatmasker/assembly.symlink.fasta.out".format( region = r ) for r in regions ]
 
+
 rule create_stitched_assembly:
+	# This rule takes the whole-genome CCS contig
+	# removes contigs that went into scaffolding
+	# then inserts the scaffolded regional assemblies in their place.
+
 	input:
 		wga = data[ "whole genome assembly" ],
 		unscaffolded = [ data["unscaffolded contigs"].format( region = region ) for region in regions ],
-		finalised = [ data["finalised assemblies"].format( region = region ) for region in regions ]
+		finalised = [ data["regional assemblies"].format( region = region ) for region in regions ]
 	output:
 		"results/assembly/stitched.fasta"
 	run:
@@ -87,16 +99,18 @@ rule count_stitched_assembly_kmers:
 
 rule count_regional_assembly_kmers:
 	input:
-		finalised = data["finalised assemblies"]
+		finalised = data["regional assemblies"]
 	output:
 		jf = "results/{region}/{region}.assembly.k={k}.jf"
 	shell: """
 		jellyfish count -m {wildcards.k} -s 100M -C -o {output.jf} {input.finalised}
 	"""
 
-rule compute_whole_genome_assembly_multiplicity:
+rule compute_whole_genome_assembly_kmer_multiplicity:
+	# Output multiplicity of each kmer appearing in the regional assembly
+	# as computed in the whole-genome stitched assembly
 	input:
-		assembly = lambda w: data["finalised assemblies"].format( region = w.region ),
+		assembly = lambda w: data["regional assemblies"].format( region = w.region ),
 		assembly_jf = "results/assembly/stitched.k={k}.jf"
 	output:
 		assembly = "results/{region}/{region}.stitched_assembly.k={k}.txt"
@@ -104,9 +118,11 @@ rule compute_whole_genome_assembly_multiplicity:
 		jellyfish query {input.assembly_jf} -s {input.assembly} -o {output.assembly}
 	"""
 
-rule compute_regional_multiplicity:
+rule compute_regional_kmer_multiplicity:
+	# Output multiplicity of each kmer appearing in the regional assembly
+	# as computed in the regional assembly itself
 	input:
-		assembly = lambda w: data["finalised assemblies"].format( region = w.region ),
+		assembly = lambda w: data["regional assemblies"].format( region = w.region ),
 		assembly_jf = lambda w: "results/{region}/{region}.assembly.k={k}.jf".format( region = w.region, k = w.k )
 	output:
 		assembly = "results/{region}/{region}.assembly.k={k}.txt"
@@ -114,9 +130,11 @@ rule compute_regional_multiplicity:
 		jellyfish query {input.assembly_jf} -s {input.assembly} -o {output.assembly}
 	"""
 		
-rule count_platform_multiplicity:
+rule count_platform_kmer_multiplicity:
+	# Output multiplicity of each kmer appearing in the regional assembly
+	# as computed in the reads from the given platform (e.g. short-read data)
 	input:
-		assembly = lambda w: data["finalised assemblies"].format( region = w.region ),
+		assembly = lambda w: data["regional assemblies"].format( region = w.region ),
 		platform_jf = lambda w: data["kmer counts"].format( platform = w.platform, k = w.k, bq = w.bq )
 	output:
 		platform = "results/{region}/{region}.{platform}.k={k}.bq={bq}.txt"
@@ -126,7 +144,7 @@ rule count_platform_multiplicity:
 
 rule mask_repeats:
 	input:
-		assembly = data["finalised assemblies"]
+		assembly = data["regional assemblies"]
 	output:
 		"results/{region}/repeatmasker/assembly.symlink.fasta.out"
 	shell: """
