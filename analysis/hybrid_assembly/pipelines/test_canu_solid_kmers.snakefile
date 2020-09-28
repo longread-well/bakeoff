@@ -47,7 +47,9 @@ kmers = {
 	"CLR": "%s/shared/analysis/kmer/distribution/PB-CCS+10X+MGI/PB-CCS+10X+MGI.k=16.bq=20.solid_kmer_superset_mhap.txt" % ROOT,
 	"ONT": "%s/shared/analysis/kmer/distribution/PB-CCS+10X+MGI/PB-CCS+10X+MGI.k=16.bq=20.solid_kmer_superset_mhap.txt" % ROOT,
 	"pbsim-CLR": "%s/shared/analysis/assembly/regions/data/reference/GRCh38_unique_16mers.mhap.txt" % ROOT,
-	"pbsim_sourcereads-CLR": "%s/shared/analysis/assembly/regions/data/reference/GRCh38_unique_16mers.mhap.txt" % ROOT
+	"pbsim-CCS": "%s/shared/analysis/assembly/regions/data/reference/GRCh38_unique_16mers.mhap.txt" % ROOT,
+	"pbsim_sourcereads-CLR": "%s/shared/analysis/assembly/regions/data/reference/GRCh38_unique_16mers.mhap.txt" % ROOT,
+	"pbsim_sourcereads-CCS": "%s/shared/analysis/assembly/regions/data/reference/GRCh38_unique_16mers.mhap.txt" % ROOT
 }
 
 print( kmers )
@@ -59,35 +61,6 @@ tools = {
 rule all:
 	input:
 		[
-			"data/reads/{platform}/{region}/{platform}_{region}.fastq.gz".format(
-				platform = platform, region = region
-			)
-			for region in regions.keys()
-			for platform in dataSources.keys()
-		],
-		[ "data/reference/GRCh38_{region}.fa".format( region = region ) for region in regions.keys() ],
-		[
-			"data/reads/pbsim-CLR/{region}/pbsim-CLR_{region}.source_reads.gz".format(
-				region = region
-			) for region in regions.keys()
-		],
-		[
-			"data/reads/pbsim_sourcereads-CLR/{region}/pbsim_sourcereads-CLR_{region}.overlaps.txt.gz".format(
-				region = region
-			)
-			for region in regions.keys()
-		],
-		[
-			"results/canu/correction/{method}/{platform}/{region}/canu.correctedReads.fasta.gz".format(
-				method = method,
-				platform = platform,
-				region = region
-			)
-			for method in [ 'standard', 'solid' ]
-			for region in regions.keys()
-			for platform in list( data.keys() ) + [ 'pbsim-CLR', 'pbsim_sourcereads-CLR' ]
-		],
-		[
 			"results/canu/correction/{method}/{platform}/{region}/canu.correctedReads.realigned.sam.gz".format(
 				method = method,
 				platform = platform,
@@ -95,7 +68,14 @@ rule all:
 			)
 			for method in [ 'standard', 'solid' ]
 			for region in regions.keys()
-			for platform in  [ 'pbsim-CLR', 'pbsim_sourcereads-CLR' ]
+			for platform in  [ 'pbsim-CLR', 'pbsim_sourcereads-CLR', 'pbsim-CCS', 'pbsim_sourcereads-CCS' ]
+		],
+		[
+			"results/canu/correction/images/{platform}_{region}_solid_standard_comparison.pdf".format(
+				platform = platform, region = region
+			)
+			for region in regions.keys()
+			for platform in  [ 'pbsim-CLR', 'pbsim_sourcereads-CLR', 'pbsim-CCS', 'pbsim_sourcereads-CCS' ]
 		]
 
 def getSolidKmerOption( wildcards ):
@@ -104,12 +84,32 @@ def getSolidKmerOption( wildcards ):
 	elif wildcards.method == 'solid':
 		return 'corMhapSolidKmers=%s' % kmers[wildcards.platform]
 
+sourceReadMapping = {
+	'pbsim': 'pbsim_sourcereads',
+	'pbsim_sourcereads': 'pbsim_sourcereads'
+}
+
+rule plot_comparison:
+	input:
+		standard = "results/canu/correction/standard/{simulator}-{platform}/{region}",
+		solid = "results/canu/correction/solid/{simulator}-{platform}/{region}",
+		source_reads = lambda w: "data/reads/" + sourceReadMapping[ w.simulator ] + "-{platform}/{region}/" + sourceReadMapping[ w.simulator ]  + "-{platform}_{region}.overlaps.txt.gz",
+		script = srcdir( "scripts/compare_correction_results.R" )
+	output:
+		plot1 = "results/canu/correction/images/{simulator}-{platform}_{region}_solid_standard_comparison.pdf",
+		plot2 = "results/canu/correction/images/{simulator}-{platform}_{region}_solid_standard_comparison.overlaps.pdf"
+	wildcard_constraints:
+		simulator = "pbsim|pbsim_sourcereads"
+	shell: """
+		/apps/well/R/3.4.3-openblas-0.2.18-omp-gcc5.4.0/bin/Rscript --vanilla {input.script} --paths standard={input.standard} solid={input.solid} --source_reads {input.source_reads} --output {output.plot1}
+	"""
+
 rule realign:
 	input:
-		corrected = "results/canu/correction/{method}/{platform}/{region}/canu.correctedReads.fasta.gz",
-		ref = "data/reads/pbsim-CLR/{region}/pbsim-CLR_{region}.source_reads.gz"
+		corrected = "results/canu/correction/{method}/{simulator}-{platform}/{region}/canu.correctedReads.fasta.gz",
+		ref = lambda w: "data/reads/{simulator}-{platform}/{region}/{simulator}-{platform}_{region}.source_reads.gz".replace( '_sourcereads', '' )
 	output:
-		aligned = "results/canu/correction/{method}/{platform}/{region}/canu.correctedReads.realigned.sam.gz"
+		aligned = "results/canu/correction/{method}/{simulator}-{platform}/{region}/canu.correctedReads.realigned.sam.gz"
 	shell: """
 		minimap2 -x map-pb -a --cs=long {input.ref} {input.corrected} | gzip -c > {output.aligned}
 	"""
@@ -122,7 +122,15 @@ rule correct:
                 reads = "results/canu/correction/{method}/{platform}/{region}/canu.correctedReads.fasta.gz"
 	params:
 		output_folder = "results/canu/correction/{method}/{platform}/{region}",
-		tech_flag = lambda wildcards: {"ONT": "nanopore", "CLR": "pacbio", "pbsim-CLR": "pacbio", "pbsim_sourcereads-CLR": "pacbio" }[wildcards.platform],
+		tech_flag = lambda wildcards: {
+			"ONT": "nanopore",
+			"CLR": "pacbio",
+			"pbsim-CLR": "pacbio",
+			"pbsim_sourcereads-CLR": "pacbio",
+			"pbsim-CCS": "pacbio",
+			"pbsim_sourcereads-CCS":
+			"pacbio"
+		}[wildcards.platform],
 		length = lambda wildcards: get_region_length(wildcards.region),
 		kmerOption = getSolidKmerOption
 		
@@ -136,6 +144,7 @@ rule correct:
 		-d {params.output_folder} \
 		-p canu \
 		genomeSize={params.length} \
+		cormhapMemory=32 \
 		useGrid=false \
 		maxThreads=4 \
 		{params.kmerOption} \
@@ -177,13 +186,15 @@ rule extractRef:
 
 rule createSourceSimulationReadSets:
 	input:
-		"data/reads/pbsim-{platform}/{region}/pbsim-{platform}_{region}.source_reads.gz"
+		"data/reads/{simulator}-{platform}/{region}/{simulator}-{platform}_{region}.source_reads.gz"
 	output:
-		"data/reads/pbsim_sourcereads-{platform}/{region}/pbsim_sourcereads-{platform}_{region}.fastq.gz"
+		fastq = "data/reads/{simulator}_sourcereads-{platform}/{region}/{simulator}_sourcereads-{platform}_{region}.fastq.gz",
+		fasta = "data/reads/{simulator}_sourcereads-{platform}/{region}/{simulator}_sourcereads-{platform}_{region}.source_reads.gz"
 	wildcard_constraints:
 		platform = "[A-Z]+"
 	shell: """
-		~/Projects/Software/3rd_party/seqtk/seqtk seq -F '?' {input} | gzip -c > {output}
+		cp {input} {output.fasta}
+		~/Projects/Software/3rd_party/seqtk/seqtk seq -F '?' {input} | gzip -c > {output.fastq}
 	"""
 
 rule indexSourceSimulationReads:
@@ -211,7 +222,7 @@ rule computeActualOverlaps:
 		count = 1
 		regions = []
 		print( "Loading reads...\n" )
-		for line in shell( "zcat {input.maf} | cut -c1-500 | grep '^s' | grep '%s' | cut -d' ' -f1-" % header, iterable = True ):
+		for line in shell( "zcat {input.maf} | cut -c1-500 | grep '^s' | grep -w -e '%s' -e 'ref' | cut -d' ' -f1-" % header, iterable = True ):
 			line = line.strip()
 			line = whitespace.sub( " ", line )
 			elts = line.split()
@@ -252,43 +263,43 @@ rule extractSourceSimulationReads:
 	params:
 		tmp = lambda w, output: [ elt + "._under_construction" for elt in output ]
 	run:
+		print( params.tmp )
 		whitespace = re.compile(r"\s+")
 		header = open( input.fasta, 'r' ).readline()
 		header = header.strip( "> \t\n" )
 		shell( "rm -f {params.tmp}" )
 		count = 1
-		for line in shell( "zcat {input.maf} | cut -c1-500 | grep '^s' | grep '%s' | cut -d' ' -f1-" % header, iterable = True ):
+		for line in shell( "zcat {input.maf} | cut -c1-500 | grep '^s' | grep -w -e '%s' -e 'ref' | cut -d' ' -f1-" % header, iterable = True ):
 			line = line.strip()
 			line = whitespace.sub( " ", line )
 			elts = line.split()
 			chromosome = header
-			print( line )
-			print( elts )
 			start = int( elts[2] )
 			length = int( elts[3] )
 			end = start + length
 			cmd = "samtools faidx {input.fasta} %s:%d-%d  | sed -e 's/>/>%s /' >> {params.tmp}" % ( chromosome, start, end, "S1_%d" % count )
-			print( cmd )
 			shell( cmd )
 			count = count + 1
 		shell( "mv {params.tmp} {output}" )
 		shell( "gzip {output}" )
 	
-rule simulateCLR:
+rule runPbsim:
 	input:
 		reads = "data/reads/{platform}/{region}/{platform}_{region}.fastq.gz",
 		fasta = "data/reference/GRCh38_{region}.fa"
 	output:
+		temp = ("data/reads/pbsim-{platform}/{region}/tmp/{platform}_{region}.fastq"),
 		reads = "data/reads/pbsim-{platform}/{region}/pbsim-{platform}_{region}.fastq.gz",
 		ref = "data/reads/pbsim-{platform}/{region}/pbsim-{platform}_{region}.ref.gz",
 		maf = "data/reads/pbsim-{platform}/{region}/pbsim-{platform}_{region}.maf.gz"
 	params:
 		prefix = "data/reads/pbsim-{platform}/{region}/pbsim-{platform}_{region}",
 		pbsim = "/users/kwiatkowski/gav/Projects/Software/3rd_party/PBSIM-PacBio-Simulator/src/pbsim",
-		model = "/users/kwiatkowski/gav/Projects/Software/3rd_party/PBSIM-PacBio-Simulator/data/model_qc_clr"
+		model = lambda wildcards: "/users/kwiatkowski/gav/Projects/Software/3rd_party/PBSIM-PacBio-Simulator/data/model_qc_%s" % wildcards.platform.lower()
 	shell: """
-		#{params.pbsim} --data-type {wildcards.platform} --depth 20 --sample-fastq {input.reads} {input.fasta} --prefix {params.prefix}
-		{params.pbsim} --data-type {wildcards.platform} --depth 20 --model_qc {params.model} {input.fasta} --prefix {params.prefix}
+		gunzip -c {input.reads} > {output.temp}
+		{params.pbsim} --data-type {wildcards.platform} --depth 20 --sample-fastq {output.temp} {input.fasta} --prefix {params.prefix} --length-max 200000
+		#{params.pbsim} --data-type {wildcards.platform} --depth 20 --model_qc {params.model} {input.fasta} --prefix {params.prefix}
 		mv {params.prefix}_0001.fastq {params.prefix}.fastq
 		mv {params.prefix}_0001.ref {params.prefix}.ref
 		mv {params.prefix}_0001.maf {params.prefix}.maf
